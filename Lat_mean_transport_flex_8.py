@@ -25,7 +25,7 @@ model='EC_Earth'
 # model='ERA5'
 
 user = os.getcwd().split('/')[2]
-media = os.getcwd().split('/')[3]
+media = 'Backup1' #os.getcwd().split('/')[3]
 
 if user=='pst019':
     Mediadir= '/media/'+user+'/'+media+'/data/Energy_Transport/'+ model +'/'
