@@ -28,8 +28,8 @@ model='EC_Earth'
 
 
 if user=='pst019':
-#    Mediadir= '/media/'+user+'/Backup1/data/Energy_Transport/'+ model +'/'
-    Mediadir= '/media/'+user+'/Backup/data/Energy_Transport/'+ model +'/'
+    Mediadir= '/media/'+user+'/Backup1/data/Energy_Transport/'+ model +'/'
+#    Mediadir= '/media/'+user+'/Backup/data/Energy_Transport/'+ model +'/'
 
 elif user=='media':
     Mediadir= '/run/media/pst019/Backup1/data/Energy_Transport/'+ model +'/'    
@@ -113,10 +113,10 @@ imp= True
 
 if model == 'EC_Earth':
     syear= 1950
-    eyear= 2100
+    eyear= 1960 #2100
     # syear= 1979
     # eyear= 2018    
-    Memberlist= [1, 2, 3, 4, 5]#,2,3,4]
+    Memberlist= [1, 2]#, 3, 4, 5]#,2,3,4]
 
 
 elif model== 'ERA5':

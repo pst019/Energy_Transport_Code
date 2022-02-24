@@ -1,0 +1,123 @@
+### start on computer
+
+sudo apt-get install git
+git config --global user.name Pat
+git config --global user.email pst019@post.uit.no
+#git config --global core.editor gedit
+git config --global core.editor "gedit -s"
+
+
+###ssh connection
+ssh-keygen -t ed25519 -C pst019@post.uit.no
+ssh-add ~/.ssh/id_ed25519
+
+get the key: gedit ~/.ssh/id_ed25519.pub
+go to github.com login and add the ssh key (click on icon> settings > SSH and GPG keys)
+
+
+
+###make a file and comit it
+gedit example_2.txt
+git init # initialize a new git repository - a new master branch > creates .git
+
+
+git status -> see what is in the repository
+
+git add example_2.txt  -> "zoom in" - can do this several times
+
+
+
+###to see changes before commiting:
+git diff
+git git difftool --tool=meld
+
+git commit -m "message"
+- do one commit for each thing - rather not combining unrelated commits
+
+good message:
+- most important in first line and short
+- then why something is done instead of what
+
+
+###see the changes in the repository
+git log
+
+git log --stat
+
+git log --oneline
+
+
+
+###define a usefull command:
+git config --global alias.graph "log --all --graph --decorate --oneline"
+
+
+#make new branch
+git branch "new_branchname" ("branch from")
+
+# go to the branch
+git checkout "new_branch"
+or git switch "new_branch"
+
+
+### typical workflow:
+$ git checkout -b new-feature  # create branch, switch to it
+$ git commit                   # work, work, work, ...
+                               # test
+                               # feature is ready
+$ git checkout master          # switch to master
+$ git merge new-feature        # merge work to master
+$ git branch -d new-feature    # remove branch
+
+
+
+###clone and fork a respository
+git clone- get a copy from the cloud to your computer
+fork- make a copy in the cloud to your github account (e.g. when you do not have writing rights)
+
+
+###clone a reposity 
+git clone git@github.com:bast/centralized-workflow-exercise.git
+cd centralized-workflow-exercise/
+
+git branch pst-destroy
+git checkout pst-destroy 
+
+gedit file
+git add file
+git commit -m "what i did"
+
+git push origin -u pst-destroy #push the branch "pst-destroy" to the "origin" branch
+
+#reviews on github.com
+
+git pull origin master
+
+
+-Submit a pull request -> go to github
+
+
+Zenodo.org > make your code public and giving it a doi
+
+
+###workflow to start
+-make the directory on your computer, cd there
+git init
+git add *
+git commit -m "Initilisation of the whole git respository"
+
+-go to github.com and create the same repository, then:
+git remote add origin git@github.com:pst019/Energy_Transport_Code.git
+git branch -M main
+git push -u origin main
+
+
+-on other computer:
+git clone git@github.com:pst019/Energy_Transport_Code.git Energy_Transport_Code
+
+-to update git on spyder:
+!git add *
+!git commit -m "setting directory"
+!git push origin main
+
+
