@@ -108,17 +108,14 @@ save= False
 save= True
 savedir= '../Figs/Global_4/'
 
-imp= False
-imp= True
-#
-#Member = 1
+
 
 if model == 'EC_Earth':
     syear= 1950
-    eyear= 1960 #2100
+    eyear= 2100
     # syear= 1979
     # eyear= 2018    
-    Memberlist= [1, 2]#, 3, 4, 5]#,2,3,4]
+    Memberlist= [1, 2, 3, 4, 5]#,2,3,4]
 
 
 elif model== 'ERA5':
@@ -200,32 +197,6 @@ elif 'Wavelength' in typ or typ == 'WaveNR':
         catlist = ['Meri', '1-3', '>4']#, '>10']
 
 
-# elif typ == 'Wavelength_smooth':
-#     if energytyp== 'E': varlist, monthlymeanlist= ['vEtot', 'vEsetot'], [False, True]
-#     elif energytyp== 'Q': varlist, monthlymeanlist= ['vQtot', 'vQsetot'], [False, True]
-#     elif energytyp== 'D': implist, monthlymeanlist= ['vEtot', 'vEsetot', 'vQtot', 'vQsetot'], [False, True, False, True]
-    
-#     catlist = ['Meri', 'Plan', 'Syno']#, 'Meso']
-#     monthlymean = False
-
-# elif typ == 'Wavelength_smooth_2':
-#     if energytyp== 'E': varlist, monthlymeanlist= ['vEtot', 'vEsetot'], [False, True]
-#     elif energytyp== 'Q': varlist, monthlymeanlist= ['vQtot', 'vQsetot'], [False, True]
-#     elif energytyp== 'D': implist, monthlymeanlist= ['vEtot', 'vEsetot', 'vQtot', 'vQsetot'], [False, True, False, True]
-
-#     catlist = ['Meri', 'Plan', 'Syno', 'Meso']
-#     monthlymean = False
-
-
-# elif typ == 'Wavelength_smooth_3':
-#     varlist= ['vEtot']
-# #    varlist= ['vQtot']
-#     catlist = ['Meri', 'Plan', 'Syno_l', 'Syno_s', 'Meso']
-    
-#     monthlymean = False
-
-
-
 
 
 
@@ -236,8 +207,16 @@ if pannellist == ['Conv']: varlist= varlist[:1]
 
 
 
+intermediate_file_name= Mediadir +'intermediate_data/monthly-mean_'
+for var in varlist: intermediate_file_name += var+'_'
+intermediate_file_name += str(syear)+'-'+str(eyear)
+for Member in Memberlist: intermediate_file_name += '_M'+str(Member)+ '.nc'
 
-if imp:
+
+if os.path.exists(intermediate_file_name):
+    ds= xr.open_dataset(intermediate_file_name)
+    
+else:
     print('Import ...')
     for Member in Memberlist:
         file_dir= Mediadir
@@ -297,8 +276,17 @@ if imp:
             ds= xr.merge([ds, ds2])
 
 
-if latcut != 90: ds= ds.where(np.abs(ds.lat) < latcut, drop= True)
+    if energytyp== 'D':
+        ds['vDtot']= ds['vEtot'] - ds['vQtot']
+        ds['vDsetot']= ds['vEsetot'] - ds['vQsetot']
+        ds= ds.drop(['vEtot', 'vQtot', 'vEsetot', 'vQsetot'])
 
+    ds.to_netcdf(intermediate_file_name)
+
+
+
+
+if latcut != 90: ds= ds.where(np.abs(ds.lat) < latcut, drop= True)
 
 a= 6371E3
 LatCirc = 2* np.pi * a * np.cos(np.deg2rad(ds.lat))
@@ -307,76 +295,12 @@ LatCirc = 2* np.pi * a * np.cos(np.deg2rad(ds.lat))
 if unit =='PerM': fac= 1
 elif unit == 'LatCycl': fac= LatCirc
 
-
-if energytyp== 'D':
-    ds['vDtot']= ds['vEtot'] - ds['vQtot']
-    ds['vDsetot']= ds['vEsetot'] - ds['vQsetot']
-
-
 if timeperiod== 'year': ds= ds.resample(time='1Y').mean()
 print('only for annual timeperiod')
 # .groupby('time.season')
 
 
-"""make the sine scale"""
-import matplotlib.scale as mscale
-import matplotlib.transforms as mtransforms
-import matplotlib.ticker as ticker
-
-class SineScale(mscale.ScaleBase):
-    """
-    ScaleBase class for generating square root scale.
-    """
- 
-    name = 'sine'
- 
-    def __init__(self, axis, **kwargs):
-        # note in older versions of matplotlib (<3.1), this worked fine.
-        # mscale.ScaleBase.__init__(self)
-
-        # In newer versions (>=3.1), you also need to pass in `axis` as an arg
-        mscale.ScaleBase.__init__(self, axis)
- 
-    def set_default_locators_and_formatters(self, axis):
-        axis.set_major_locator(ticker.AutoLocator())
-        axis.set_major_formatter(ticker.ScalarFormatter())
-        axis.set_minor_locator(ticker.NullLocator())
-        axis.set_minor_formatter(ticker.NullFormatter())
- 
-    def limit_range_for_scale(self, vmin, vmax, minpos):
-        return  max(-90., vmin), min(90, vmax)
- 
-    class SineTransform(mtransforms.Transform):
-        input_dims = 1
-        output_dims = 1
-        is_separable = True
- 
-        def transform_non_affine(self, a): 
-            # return np.array(a)**0.5
-            return np.sin(np.deg2rad(a))
- 
-        def inverted(self):
-            return SineScale.InvertedSineTransform()
- 
-    class InvertedSineTransform(mtransforms.Transform):
-        input_dims = 1
-        output_dims = 1
-        is_separable = True
- 
-        def transform(self, a):
-            return np.rad2deg(np.arcsin(a))
- 
-        def inverted(self):
-            return SineScale.SineTransform()
- 
-    def get_transform(self):
-        return self.SineTransform()
- 
-mscale.register_scale(SineScale)
-
-
-
-
+####here the sinescale function was before
 
 
 """Calculate transport of each category"""
