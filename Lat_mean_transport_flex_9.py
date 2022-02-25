@@ -13,6 +13,8 @@ import xarray as xr
 #import glob as glob
 #import datetime
 import pandas as pd
+from scipy.stats import permutation_test
+
 
 params = {'axes.labelsize': 13,
           # 'axes.titlesize': 16,
@@ -469,7 +471,7 @@ if rolling:
 colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 
-fig= plt.figure(fignr, figsize= (8, 2+3*len(pannellist)))
+fig= plt.figure(fignr, figsize= (8, 1+3*len(pannellist)))
 fignr+=1
 plt.clf()
 
@@ -580,17 +582,16 @@ for ip, ptype in enumerate(pannellist):
 
 
     if ptype == 'Change-Mean-perm':
-        from scipy.stats import permutation_test
 
-        def mean_diff(x, y):
-            return np.mean(x, axis= -1) - np.mean(y, axis= -1)
+        def mean_diff(ds1, ds2):
+            return np.mean(ds1, axis= -1) - np.mean(ds2, axis= -1)
         
         # def stack_ds(ds, dim= ("time", "Member")):
         #     return np.array(ds.stack(x= dim) )
 
         def split_stack_ds(ds, split_2, split1, dim= ("time", "Member")):
-            return (np.array(dstot.where(ds["time.year"]>= split_2, drop= True).stack(x= ("time", "Member")) ),
-                    np.array(dstot.where(ds["time.year"]<= split_1, drop= True).stack(x= ("time", "Member")) ) )
+            return (np.array(ds.where(ds["time.year"]>= split_2, drop= True).stack(x= ("time", "Member")) ),
+                    np.array(ds.where(ds["time.year"]<= split_1, drop= True).stack(x= ("time", "Member")) ) )
         
         # ds1= np.array(dstot.where(ds["time.year"]>= split_2, drop= True).stack(x= ("time", "Member")) )
         # ds2= np.array(dstot.where(ds["time.year"]<= split_1, drop= True).stack(x= ("time", "Member")) )
@@ -604,6 +605,7 @@ for ip, ptype in enumerate(pannellist):
         pval= permutation_test((ds1, ds2), mean_diff, axis= -1, n_resamples= 1000).pvalue
                 
         axs[ip].plot(ds.lat, fac* np.ma.masked_where(pval >.05, diffmean), label= 'Total', color= 'k')
+        # axs[ip].plot(ds.lat, fac*  diffmean, label= 'Total', color= 'k')
 
        
         for ci, cat in enumerate(catlist):
@@ -615,8 +617,13 @@ for ip, ptype in enumerate(pannellist):
                 diffmean= mean_diff(ds1, ds2)
                 pval= permutation_test((ds1, ds2), mean_diff, axis= -1, n_resamples= 1000).pvalue
                 
-                if vi == 0:  axs[ip].plot(ds.lat, fac*np.ma.masked_where(pval >.05, diffmean), label= cat, color= color)
-                elif cat != 'Meri':  axs[ip].plot(ds.lat, fac*np.ma.masked_where(pval >.05, diffmean), ls= '--', label= cat +' stat', color= color)
+                if vi == 0:
+                    axs[ip].plot(ds.lat, fac*np.ma.masked_where(pval >.05, diffmean), label= cat, color= color)
+                    # axs[ip].plot(ds.lat, fac* diffmean, label= cat, color= color)
+
+                elif cat != 'Meri':
+                    axs[ip].plot(ds.lat, fac*np.ma.masked_where(pval >.05, diffmean), ls= '--', label= cat +' stat', color= color)
+                    # axs[ip].plot(ds.lat, fac*diffmean, ls= '--', label= cat +' stat', color= color)
 
 
         axs[ip].set_ylabel('Transport change'#' \n '+str(split_2)+'-'+str(eyear)+' - '+str(syear)+'-'+str(split_1) 
@@ -851,6 +858,46 @@ for ip, ptype in enumerate(pannellist):
                             ((diffmean/mean).mean(dim='Member') + (diffmean/mean).std(dim='Member')).where(meanfilter, np.nan), color= color, alpha= 0.2   )
 
         axs[ip].set_ylabel('Fraction change') #' \n'+str(split_2)+'-'+str(eyear)+' - '+str(syear)+'-'+str(split_1))
+
+
+    if ptype== 'Change-Fraction-perm': # (transport change) / (mean transport)
+
+        def frac_diff(ds1, ds2):
+            """difference/ mean"""
+            m1= np.mean(ds1, axis= -1)
+            m2= np.mean(ds2, axis= -1)
+            return (m1 - m2) /(0.5* (m1 + m2))
+            
+        def split_stack_ds(ds, split_2, split1, dim= ("time", "Member")):
+            return (np.array(ds.where(ds["time.year"]>= split_2, drop= True).stack(x= ("time", "Member")) ),
+                    np.array(ds.where(ds["time.year"]<= split_1, drop= True).stack(x= ("time", "Member")) ) )
+
+        ds1, ds2= split_stack_ds(dstot, split_2, split_1, dim= ("time", "Member"))
+        
+        difffrac= frac_diff(ds1, ds2)
+        pval= permutation_test((ds1, ds2), frac_diff, axis= -1, n_resamples= 1000).pvalue
+                
+        axs[ip].plot(ds.lat, fac* np.ma.masked_where(pval >.05, difffrac), label= 'Total', color= 'k')
+
+        for ci, cat in enumerate(catlist):
+            color = colors[ci]
+            for vi, var in enumerate(varlist):    
+                ds1, ds2= split_stack_ds(ds[cat+'_'+var], split_2, split_1, dim= ("time", "Member"))
+
+                # diffmean= (ds[cat+'_'+var].where(ds["time.year"]>= split_2).mean(dim='time') - ds[cat+'_'+var].where(ds["time.year"]<= split_1).mean(dim='time')).mean(dim='Member')
+                difffrac= frac_diff(ds1, ds2)
+                pval= permutation_test((ds1, ds2), frac_diff, axis= -1, n_resamples= 1000).pvalue
+                
+                if vi == 0:
+                    axs[ip].plot(ds.lat, fac*np.ma.masked_where(pval >.05, difffrac), label= cat, color= color)
+                    # axs[ip].plot(ds.lat, fac* diffmean, label= cat, color= color)
+
+                elif cat != 'Meri':
+                    axs[ip].plot(ds.lat, fac*np.ma.masked_where(pval >.05, difffrac), ls= '--', label= cat +' stat', color= color)
+                    # axs[ip].plot(ds.lat, fac*diffmean, ls= '--', label= cat +' stat', color= color)
+
+        axs[ip].set_ylabel('Fraction change') #' \n'+str(split_2)+'-'+str(eyear)+' - '+str(syear)+'-'+str(split_1))
+
 
 
     if ptype== 'Change-Frac-Var': #(change transport variance) / (mean variance)
