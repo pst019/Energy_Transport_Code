@@ -47,7 +47,7 @@ Mediadir_0= Mediadir
 if model=='ERA5': Mediadir += 'EnergySplit/res_0.5x0.5/Waves/'
 
 
-fignr= 6
+fignr= 8
 
 scale= 'sine'
 scale=''
@@ -81,6 +81,7 @@ energytyp= 'E' #total energy
 # energytyp= 'D' # dry static
 
 ####'Mean' , 'Var', 'Change-Mean', 'Change-Var', 'Conv', 'Change-Conv', 'Change-Fraction', 'Change-Frac-Var'
+# pannellist= ['Mean']
 # pannellist= ['Mean' , 'Var'] #, 'Change-Mean', 'Change-Var', 'Conv', 'Change-Conv', 'Change-Fraction', 'Change-Frac-Var'
 # pannellist= ['Mean' , 'Change-Mean'] #, 'Change-Var', 'Conv', 'Change-Conv'
 # pannellist= ['Mean' , 'Conv'] 
@@ -89,14 +90,17 @@ energytyp= 'E' #total energy
 # pannellist= ['Change-Mean', 'Change-Fraction', 'Change-Conv']
 # pannellist= ['Change-Mean']
 # pannellist= ['Change-Mean-perm']
-pannellist= ['Change-Mean-ttest']
+# pannellist, fix_y_axis= ['Change-Mean-ttest'], [[-8E6, 12E6]]
 
 # pannellist= ['Change-Fraction']
 # pannellist= ['Change-Fraction-perm']
 # pannellist= ['Change-Fraction-ttest']
 
+# pannellist= ['Change-Conv']
 # pannellist= ['Change-Conv-perm']
-
+# pannellist= ['Change-Conv-ttest']
+pannellist= ['Change-Var']
+pannellist= ['Change-Var-ftest']
 
 # pannellist = ['Mean', 'Change-Mean', 'Change-Fraction', 'Change-Conv']
 # pannellist= ['Change-Var-Roll']
@@ -110,7 +114,13 @@ pannellist= ['Change-Mean-ttest']
 # pannellist, fix_y_axis= ['Mean' , 'Var'], [[-2E8, 2E8], [0, 1.15E7]]  #for EC-Earth
 
 # pannellist, fix_y_axis= ['Change-Mean', 'Change-Fraction', 'Change-Conv'], [[-2E7, 2E7], [-.25, .35], [-15, 16]]
+# pannellist, fix_y_axis= ['Change-Mean-ttest', 'Change-Fraction-ttest', 'Change-Conv-ttest'], [[-2E7, 2E7], [-.25, .35], [-15, 16]]
+# pannellist, fix_y_axis= ['Change-Mean-ttest'], [[-2E7, 2E7]]
+
+
 # pannellist, timeperiod, fix_y_axis= ['Change-Mean', 'Change-Fraction'], 'SON', [[-2.2E7, 4E7], [-.4, .4]]
+# pannellist, timeperiod, fix_y_axis= ['Change-Mean-ttest', 'Change-Fraction-ttest'], 'JJA', [[-2.2E7, 4E7], [-.4, .4]]
+
 # pannellist, fix_y_axis= ['Var', 'Var-Fraction'], [[0, 1.2E7], [0, .4]]
 # pannellist, fix_y_axis=  ['Change-Var-Roll', 'Change-Frac-Var-Roll'], [[-3.5E6, 4E6], [-.4, .6]]
 
@@ -217,7 +227,7 @@ if pannellist == ['Conv']: varlist= varlist[:1]
 
 
 
-intermediate_file_name= Mediadir_0 +'intermediate_data/monthly-mean_'
+intermediate_file_name= Mediadir_0 +'intermediate_data/'+timeperiod+'-mean_'
 for var in implist: intermediate_file_name += var+'_'
 intermediate_file_name += str(syear)+'-'+str(eyear)
 for Member in Memberlist: intermediate_file_name += '_M'+str(Member)
@@ -431,6 +441,25 @@ def frac_diff(ds1, ds2):
 # def moving_average(x, w):
 #     return np.convolve(x, np.ones(w), 'valid') / w
 
+def sign_change_ds(ds1):
+    #ds1 is the data array
+    #dslat is just ds.lat
+    from scipy.signal import argrelextrema
+    # from scipy import ndimage
+
+    ds1= ds1.mean(axis=1)
+    ds1_s= np.sign(ds1)
+    sign_change= (np.roll(ds1_s, 1)- ds1_s != 0).astype(int)
+    sign_change[0]= 0
+    # return sign_change
+
+    # sign_change_mean= sign_change.mean(axis= 1)
+    locmax= argrelextrema(sign_change.to_numpy(), np.greater)
+    sign_change= sign_change.rolling(lat= 15, center= True).max().fillna(0)
+    # sign_change[sign_change<1E-7]=0
+    return ds1.lat.values[locmax], sign_change
+
+
 def sign_change(ds1, dslat= ds.lat):
     #ds1 is a stacked data variable
     #dslat is just ds.lat
@@ -449,7 +478,6 @@ def sign_change(ds1, dslat= ds.lat):
     sign_change_mean[sign_change_mean<1E-7]=0
     return dslat.values[locmax], sign_change_mean
 
-
 p_level= 0.05
 
 
@@ -459,7 +487,7 @@ p_level= 0.05
 colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 
-fig= plt.figure(fignr, figsize= (8, 1+3*len(pannellist)))
+fig= plt.figure(fignr, figsize= (8, 3*len(pannellist)))
 fignr+=1
 plt.clf()
 
@@ -606,32 +634,29 @@ for ip, ptype in enumerate(pannellist):
         """significance t-test"""
         ds1, ds2= split_stack_ds(dstot, split_2, split_1, dim= ("time", "Member"))
         
-        diffmean= mean_diff(ds1, ds2)
-        # pval= permutation_test((ds1, ds2), mean_diff, axis= -1, n_resamples= 1000).pvalue       
+        diff= np.mean(ds1, axis= -1) - np.mean(ds2, axis= -1)
         pval= stats.ttest_ind(ds1, ds2, axis= 1)[1]
         
         meanfilter= pval < p_level        
         
-        axs[ip].plot(ds.lat, fac* np.ma.masked_where(pval > p_level, diffmean), label= 'Total', color= 'k', lw= 2)
-        axs[ip].plot(ds.lat, fac* diffmean, color= 'k', lw= 0.5)
+        axs[ip].plot(ds.lat, fac* np.ma.masked_where(pval > p_level, diff), label= 'Total', color= 'k', lw= 2)
+        axs[ip].plot(ds.lat, fac* diff, color= 'k', lw= 0.5)
    
         for ci, cat in enumerate(catlist):
             color = colors[ci]
             for vi, var in enumerate(varlist):    
                 ds1, ds2= split_stack_ds(ds[cat+'_'+var], split_2, split_1, dim= ("time", "Member"))
 
-                # diffmean= (ds[cat+'_'+var].where(ds["time.year"]>= split_2).mean(dim='time') - ds[cat+'_'+var].where(ds["time.year"]<= split_1).mean(dim='time')).mean(dim='Member')
-                diffmean= mean_diff(ds1, ds2)
+                diff= np.mean(ds1, axis= -1) - np.mean(ds2, axis= -1)
                 pval= stats.ttest_ind(ds1, ds2, axis= 1)[1]
                 
                 if vi == 0:
-                    axs[ip].plot(ds.lat, fac*np.ma.masked_where(pval > p_level, diffmean), label= cat, color= color, lw= 2)
-                    axs[ip].plot(ds.lat, fac*diffmean, color= color, lw= 0.5)
-                    # axs[ip].plot(ds.lat, fac* diffmean, label= cat, color= color)
+                    axs[ip].plot(ds.lat, fac*np.ma.masked_where(pval > p_level, diff), label= cat, color= color, lw= 2)
+                    axs[ip].plot(ds.lat, fac*diff, color= color, lw= 0.5)
 
                 elif cat not in ['Meri', 'Syno']:
-                    axs[ip].plot(ds.lat, fac*np.ma.masked_where(pval > p_level, diffmean), ls= '--', label= cat +' stat', color= color, lw= 2)
-                    axs[ip].plot(ds.lat, fac* diffmean, ls= '--', color= color, lw=.5)
+                    axs[ip].plot(ds.lat, fac*np.ma.masked_where(pval > p_level, diff), ls= '--', label= cat +' stat', color= color, lw= 2)
+                    axs[ip].plot(ds.lat, fac* diff, ls= '--', color= color, lw=.5)
 
                     # axs[ip].plot(ds.lat, fac*diffmean, ls= '--', label= cat +' stat', color= color)
 
@@ -678,6 +703,51 @@ for ip, ptype in enumerate(pannellist):
     if ptype == 'Change-Var-Roll': #the variance from the rolling mean
 
         anomalie= dstot- dstot.rolling(time= 30, center= True).mean()
+        diff_variability= (anomalie.where(ds["time.year"]>= split_2).std(dim='time')
+                        - anomalie.where(ds["time.year"]<= split_1).std(dim='time')).mean(dim='Member')
+
+        axs[ip].plot(ds.lat, fac * diff_variability, label= 'Total', color= 'k')
+
+        if len(Memberlist) > 1:         
+            diff_variability_std= (anomalie.where(ds["time.year"]>= split_2).std(dim='time')
+                - anomalie.where(ds["time.year"]<= split_1).std(dim='time')).std(dim='Member')
+            
+            axs[ip].fill_between(ds.lat, fac*(diff_variability - diff_variability_std),  fac*(diff_variability + diff_variability_std), color= 'k', alpha= 0.2   )
+
+    
+        for ci, cat in enumerate(catlist):
+            color = colors[ci]
+            for vi, var in enumerate(varlist):    
+                #change in standard deviation
+                anomalie= ds[cat+'_'+var]- ds[cat+'_'+var].rolling(time= 30, center= True).mean()
+
+                diff_variability= (anomalie.where(ds["time.year"]>= split_2).std(dim='time')
+                                  - anomalie.where(ds["time.year"]<= split_1).std(dim='time')).mean(dim='Member')
+                
+                if vi == 0: axs[ip].plot(ds.lat, fac* diff_variability, color= color, label= cat)
+                elif cat != 'Meri': axs[ip].plot(ds.lat, fac* diff_variability , ls= '--', color= color, label= cat +' stat' )
+
+                if len(Memberlist) > 1:                 
+                    diff_variability_std= (anomalie.where(ds["time.year"]>= split_2).std(dim='time')
+                        - anomalie.where(ds["time.year"]<= split_1).std(dim='time') ).std(dim='Member')
+                    axs[ip].fill_between(ds.lat, fac*(diff_variability - diff_variability_std),  fac*(diff_variability + diff_variability_std), color= color, alpha= 0.2   )
+
+
+        axs[ip].set_ylabel('Variability change\n' #' \n '+str(split_2)+'-'+str(eyear)+' - '+str(syear)+'-'+str(split_1)
+                           +' [W m$^{-1}$]')
+
+
+    if ptype == 'Change-Var-ftest': #the variance from the rolling mean #in test
+
+        anomalie= dstot- dstot.rolling(time= 30, center= True).mean()
+        anomalie= anomalie.dropna(dim= 'time')
+        ds1, ds2= split_stack_ds(anomalie, split_2, split_1, dim= ("time", "Member"))
+        
+        stats.levene(ds1[0], ds2[0])
+        var1= np.var(ds1, axis= 1)
+        var2= np.var(ds2, axis= 1)
+        F= var1/var2
+        
         diff_variability= (anomalie.where(ds["time.year"]>= split_2).std(dim='time')
                         - anomalie.where(ds["time.year"]<= split_1).std(dim='time')).mean(dim='Member')
 
@@ -785,6 +855,46 @@ for ip, ptype in enumerate(pannellist):
                 if len(Memberlist) > 1: 
                     conv_diff_std= conv_diff.std(dim='Member')
                     axs[ip].fill_between(ds.lat, (conv_diff_mean - conv_diff_std),  conv_diff_mean + conv_diff_std, color= color, alpha= 0.2)
+
+        axs[ip].set_ylabel('Convergence change\n [W m$^{-2}$]')
+
+
+    if ptype == 'Change-Conv-ttest':
+        ds_var= dstot.copy()
+        ds_var *= np.cos(np.deg2rad(ds_var.lat))
+        ds_var = -1* ds_var.differentiate('lat')/110E3 * 1/np.cos(np.deg2rad(ds_var.lat))
+        ds_var= ds_var.rolling(lat= 5, center= True).mean() #smooth
+
+        ds1, ds2= split_stack_ds(ds_var, split_2, split_1, dim= ("time", "Member"))
+        
+        diff= np.mean(ds1, axis= -1) - np.mean(ds2, axis= -1)
+        pval= stats.ttest_ind(ds1, ds2, axis= 1)[1]
+        meanfilter= pval < p_level        
+        
+        axs[ip].plot(ds.lat, fac* np.ma.masked_where(pval > p_level, diff), label= 'Total', color= 'k', lw= 2)
+        axs[ip].plot(ds.lat, fac* diff, color= 'k', lw= 0.5)
+
+
+    
+        for ci, cat in enumerate(catlist):
+            color = colors[ci]
+            for vi, var in enumerate(varlist[:1]):    
+                ds_var= ds[cat+'_'+var].copy()
+                ds_var *= np.cos(np.deg2rad(ds_var.lat))
+                ds_var = -1* ds_var.differentiate('lat')/110E3 * 1/np.cos(np.deg2rad(ds_var.lat))
+                ds_var= ds_var.rolling(lat= 5, center= True).mean() #smooth
+        
+                ds1, ds2= split_stack_ds(ds_var, split_2, split_1, dim= ("time", "Member"))
+                
+                diff= np.mean(ds1, axis= -1) - np.mean(ds2, axis= -1)
+                pval= stats.ttest_ind(ds1, ds2, axis= 1)[1]
+                meanfilter= pval < p_level        
+                
+                axs[ip].plot(ds.lat, fac* np.ma.masked_where(pval > p_level, diff), label= cat, color= color, lw= 2)
+                axs[ip].plot(ds.lat, fac* diff, color= color, lw= 0.5)
+
+                # if vi == 0: axs[ip].plot(ds.lat, conv_diff_mean, label= cat, color= color)
+                # elif cat != 'Meri': axs[ip].plot(ds.lat, conv_diff_mean, ls= '--', color= color, label= cat +' stat' )
 
         axs[ip].set_ylabel('Convergence change\n [W m$^{-2}$]')
 
@@ -974,71 +1084,53 @@ for ip, ptype in enumerate(pannellist):
 
 
     if ptype== 'Change-Fraction-ttest': # (transport change) / (mean transport)
-        filter_level= 0.05* np.abs(dstot.mean(dim='time').mean(dim='Member').max())
+        filter_level= 0.15* np.abs(dstot.mean(dim='time').mean(dim='Member').max())
         
-        ds_var= dstot
+        ds_var= dstot.copy()
         meanfilter= np.abs(ds_var.mean(dim=['time', 'Member'])) < filter_level     
         
-        mean= ds_var.mean(dim='time')
-        ds_var/= mean
-        # diffmean= (dstot.where(ds["time.year"]>= split_2).mean(dim='time')
-        #        - dstot.where(ds["time.year"]<= split_1).mean(dim='time') )
-        
+        ds_mean= ds_var.mean(dim='time')
+        ds_var/= ds_mean
         ds1, ds2= split_stack_ds(ds_var, split_2, split_1, dim= ("time", "Member"))
         
-        diff= np.mean(ds1, axis= -1) - np.mean(ds2, axis= -1)
+        diff= np.mean(ds1, axis= 1) - np.mean(ds2, axis= 1)
         pval= stats.ttest_ind(ds1, ds2, axis= 1)[1]
-
-        # pval= permutation_test((ds1, ds2), frac_diff, axis= -1, n_resamples= 1000).pvalue     
+      
+        lat_change, cross_filter= sign_change_ds(ds_mean)
         
-        lat_change1, change_array1= sign_change(ds1, dslat= ds.lat)
-        lat_change2, change_array2= sign_change(ds2, dslat= ds.lat)
+        FILTER= np.logical_or(pval > p_level, meanfilter)
+        FILTER= np.logical_or(FILTER, cross_filter)       
         
-        meanfilter= np.logical_or(pval > p_level, change_array1) #pval > p_level    
-        # filter_1= pval > p_level
-        filter_1= np.logical_or(pval > p_level, meanfilter)
-        filter_2= np.logical_or(change_array1, change_array2)       
-        filter_1= np.logical_or(filter_1, filter_2)       
-
-        
-        axs[ip].plot(ds.lat, fac* np.ma.masked_where(filter_1 != 0, diff), label= 'Total', color= 'k')
+        axs[ip].plot(ds.lat, fac* np.ma.masked_where(FILTER!= 0, diff), label= 'Total', color= 'k', lw= 2)
+        axs[ip].plot(ds.lat, fac* np.ma.masked_where(cross_filter!= 0, diff), color= 'k', lw= 0.5)
 
 
         for ci, cat in enumerate(catlist):
             color = colors[ci]
             for vi, var in enumerate(varlist): 
-                ds_var= ds[cat+'_'+var]
+                ds_var= ds[cat+'_'+var].copy()
                 meanfilter= np.abs(ds_var.mean(dim=['time', 'Member'])) < filter_level        
                 
                 ds_mean= ds_var.mean(dim='time')
-                ds_var/= ds_var.mean(dim='time')
+                ds_var/= ds_mean
                 ds1, ds2= split_stack_ds(ds_var, split_2, split_1, dim= ("time", "Member"))
 
-                # diffmean= (ds[cat+'_'+var].where(ds["time.year"]>= split_2).mean(dim='time') - ds[cat+'_'+var].where(ds["time.year"]<= split_1).mean(dim='time')).mean(dim='Member')
-                # difffrac= frac_diff(ds1, ds2)
-                # pval= permutation_test((ds1, ds2), frac_diff, axis= -1, n_resamples= 1000).pvalue
-                
                 diff= np.mean(ds1, axis= -1) - np.mean(ds2, axis= -1)
                 pval= stats.ttest_ind(ds1, ds2, axis= 1)[1]
 
-                # lat_change1, change_array1= sign_change(np.array(ds_mean), dslat= ds.lat)
-                lat_change1, change_array1= sign_change(ds1, dslat= ds.lat)
-                lat_change2, change_array2= sign_change(ds2, dslat= ds.lat)
+                lat_change, cross_filter= sign_change_ds(ds_mean)
         
-                # filter_1= pval > p_level
-                filter_1= np.logical_or(pval > p_level, meanfilter)
-                # filter_2= change_array1
-                filter_2= np.logical_or(change_array1, change_array2)       
-                filter_1= np.logical_or(filter_1, filter_2)  
-                # meanfilter= np.logical_or(pval > p_level, change_array1)
-                # meanfilter= np.logical_or.reduce((pval > p_level, change_array1, change_array2))
-                
+                FILTER= np.logical_or(pval > p_level, meanfilter)
+                FILTER= np.logical_or(FILTER, cross_filter)     
+
                 if vi == 0:
-                    axs[ip].plot(ds.lat, fac*np.ma.masked_where(filter_1 != 0, diff), label= cat, color= color)
+                    axs[ip].plot(ds.lat, fac*np.ma.masked_where(FILTER != 0, diff), label= cat, color= color, lw= 2)
+                    axs[ip].plot(ds.lat, fac*np.ma.masked_where(cross_filter != 0, diff), color= color, lw= .5)
                     # axs[ip].plot(ds.lat, fac* diffmean, label= cat, color= color)
 
                 elif cat not in ['Meri', 'Syno']:
-                    axs[ip].plot(ds.lat, fac*np.ma.masked_where(filter_1 != 0, diff), ls= '--', label= cat +' stat', color= color)
+                    axs[ip].plot(ds.lat, fac*np.ma.masked_where(FILTER != 0, diff), ls= '--', label= cat +' stat', color= color, lw= 2)
+                    axs[ip].plot(ds.lat, fac*np.ma.masked_where(cross_filter != 0, diff), ls= '--', color= color, lw= .5)
                     # axs[ip].plot(ds.lat, fac*diffmean, ls= '--', label= cat +' stat', color= color)
 
         axs[ip].set_ylabel('Fraction change') #' \n'+str(split_2)+'-'+str(eyear)+' - '+str(syear)+'-'+str(split_1))
@@ -1125,7 +1217,7 @@ axs[ip].set_xticks(np.arange(-80,80.1, 20))
 axs[ip].set_xticks(np.arange(-80,80.1, 10), minor=True)
 
 
-if pannellist == ['Conv'] or energytyp== 'E_nostat':  axs[0].legend(ncol= 2)
+if pannellist in [['Conv'], ['Change-Conv-ttest']] or energytyp== 'E_nostat':  axs[0].legend(ncol= 2)
 elif typ in ['Wavelength_smooth_2', 'Wavelength_smooth_6tsd', 'Wavelength_smooth_7tsd', 'Wavelength_smooth_10tsd'] or trans_var: axs[0].legend(ncol= 4)
 else:  axs[0].legend(ncol= 3)
 
