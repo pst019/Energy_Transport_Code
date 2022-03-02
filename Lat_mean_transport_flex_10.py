@@ -33,17 +33,18 @@ model='EC_Earth'
 
 
 if user=='pst019':
-    Mediadir= '/media/'+user+'/Backup1/data/Energy_Transport/'+ model +'/'
-#    Mediadir= '/media/'+user+'/Backup/data/Energy_Transport/'+ model +'/'
+    Mediadir= '/media/'+user+'/Backup1/'
+#    Mediadir= '/media/'+user+'/Backup/'
 
 elif user=='media':
-    Mediadir= '/run/media/pst019/Backup1/data/Energy_Transport/'+ model +'/'    
+    Mediadir= '/run/media/pst019/Backup1/'    
 else:
     if model=='EC_Earth': Mediadir= '/nird/projects/nird/NS9063K/Richard_KNMI/'
     if model=='ERA5': Mediadir= '/nird/projects/nird/NS9063K/from_stallo/era5/'
 #'/nird/projects/NS9063K/Richard_KNMI'
 
 Mediadir_0= Mediadir    
+Mediadir += 'data/Energy_Transport/'+ model +'/'
 if model=='ERA5': Mediadir += 'EnergySplit/res_0.5x0.5/Waves/'
 
 
@@ -117,7 +118,7 @@ pannellist, fix_y_axis=  ['Change-Var-ftest', 'Change-Frac-Var-ftest'], [[-2.5E6
 
 # save= False
 save= True
-savedir= Mediadir_0 +'../../../home/Energy_Transport/Figs/Global_5/'
+savedir= Mediadir_0 +'/home/Energy_Transport/Figs/Global_5/'
 
 
 
@@ -214,7 +215,7 @@ if pannellist == ['Conv']: varlist= varlist[:1]
 
 
 
-intermediate_file_name= Mediadir_0 +'intermediate_data/'+timeperiod+'-mean_'
+intermediate_file_name= Mediadir_0 +'data/Energy_Transport/'+ model +'/intermediate_data/'+timeperiod+'-mean_'
 for var in implist: intermediate_file_name += var+'_'
 intermediate_file_name += str(syear)+'-'+str(eyear)
 for Member in Memberlist: intermediate_file_name += '_M'+str(Member)
@@ -428,24 +429,6 @@ def frac_diff(ds1, ds2):
 # def moving_average(x, w):
 #     return np.convolve(x, np.ones(w), 'valid') / w
 
-def sign_change_ds(ds1):
-    #ds1 is the data array
-    #dslat is just ds.lat
-    from scipy.signal import argrelextrema
-    # from scipy import ndimage
-    latsmooth= len(ds1.lat)//10 #10% of the latitudes are smoothed in the filter
-
-    if len(ds1.shape)== 2: ds1= ds1.mean(axis=1)
-    ds1_s= np.sign(ds1)
-    sign_change= (np.roll(ds1_s, 1)- ds1_s != 0).astype(int)
-    sign_change[0]= 0
-    # return sign_change
-
-    # sign_change_mean= sign_change.mean(axis= 1)
-    locmax= argrelextrema(sign_change.to_numpy(), np.greater)
-    sign_change= sign_change.rolling(lat= latsmooth, center= True).max().fillna(0)
-    # sign_change[sign_change<1E-7]=0
-    return ds1.lat.values[locmax], sign_change
 
 
 def sign_change(ds1, dslat= ds.lat):

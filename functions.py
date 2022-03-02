@@ -12,6 +12,8 @@ import matplotlib.scale as mscale
 import matplotlib.transforms as mtransforms
 import matplotlib.ticker as ticker
 
+import numpy as np
+
 class SineScale(mscale.ScaleBase):
     """
     ScaleBase class for generating square root scale.
@@ -63,3 +65,25 @@ class SineScale(mscale.ScaleBase):
  
 
 mscale.register_scale(SineScale)
+
+
+
+
+def sign_change_ds(ds1):
+    #ds1 is the data array
+    #dslat is just ds.lat
+    from scipy.signal import argrelextrema
+    # from scipy import ndimage
+    latsmooth= len(ds1.lat)//10 #10% of the latitudes are smoothed in the filter
+
+    if len(ds1.shape)== 2: ds1= ds1.mean(axis=1)
+    ds1_s= np.sign(ds1)
+    sign_change= (np.roll(ds1_s, 1)- ds1_s != 0).astype(int)
+    sign_change[0]= 0
+    # return sign_change
+
+    # sign_change_mean= sign_change.mean(axis= 1)
+    locmax= argrelextrema(sign_change.to_numpy(), np.greater)
+    sign_change= sign_change.rolling(lat= latsmooth, center= True).max().fillna(0)
+    # sign_change[sign_change<1E-7]=0
+    return ds1.lat.values[locmax], sign_change
