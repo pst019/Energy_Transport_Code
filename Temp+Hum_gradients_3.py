@@ -38,7 +38,7 @@ syear_2= 2070
 eyear_2= 2100
 
 
-fignr= 7
+fignr= 8
 
 
 varlist=[ 'T2M', 'vEtot'] #important that the u component is first
@@ -49,12 +49,12 @@ evar='vEtot'
 evar_name='energy'
 
 
-# varlist=[ 'T_850', 'vEtot'] #important that the u component is first
-# fvar= 'T_850' #the display variable
-# label='temperature 850hPa'
-# unit='K'
-# evar='vEtot'
-# evar_name='energy'
+varlist=[ 'T_850', 'vEtot'] #important that the u component is first
+fvar= 'T' #the display variable
+label='temperature 850hPa'
+unit='K'
+evar='vEtot'
+evar_name='energy'
 
 # varlist=['TCWV','vQtot'] #important that the u component is first
 # fvar= 'TCWV' #the display variable
@@ -63,12 +63,19 @@ evar_name='energy'
 # evar='vQtot'
 # evar_name='latent energy'
 
-# varlist=['Q850','vQtot'] #important that the u component is first
+# varlist=['Q_850','vQtot'] #important that the u component is first
 # fvar= 'Q' #the display variable
 # label='Specific humidity'
 # unit='g/kg'
 # evar='vQtot'
 # evar_name='latent energy'
+
+
+transport_type= 'Total'
+# transport_type= 'Meri'
+# transport_type= 'Plan'
+# transport_type= 'Syno'
+
 
 latcut= 89
 
@@ -115,12 +122,13 @@ for vi, var in enumerate(varlist):
                     
                     ds0= xr.concat([ds0, ds1], dim= 'time')
         
+
+        if var in ['Z_850', 'Q_850', 'T_850']: ds0= ds0.isel(plev= 0)
         ds0.to_netcdf(intermediate_file_name)
 
 
     
     """merge the different variables in one ds"""
-    if var in ['Z850', 'Q850']: ds0= ds0.isel(plev= 0)
 
     if var== varlist[0]:
         ds2= ds0
@@ -152,9 +160,27 @@ import scipy.signal
 
 ds= ds.reindex(lat= list(reversed(ds.lat)))
 
-fignr= 8
+a= 6371E3
+LatCirc = 2* np.pi * a * np.cos(np.deg2rad(ds.lat))
+Split1= 8000E3
+WaveSplit1= LatCirc/Split1
 
-filter_value= 0.05
+
+if transport_type== 'Total':
+    transp = ds[evar].sum(dim= "WaveNumb")
+elif transport_type== 'Meri':
+        transp= ds[evar].sel(WaveNumb= 0)
+elif transport_type== 'Plan':        
+        transp= (ds[evar].where(np.logical_and(ds.WaveNumb > 0, ds.WaveNumb < 1+ WaveSplit1//1)).sum(dim='WaveNumb')
+                +  WaveSplit1%1 * ds[evar].sel(WaveNumb= 1+ WaveSplit1//1).fillna(0) )
+elif transport_type== 'Syno':        
+        transp= ( ds[evar].where(ds.WaveNumb > 1+ WaveSplit1//1).sum(dim='WaveNumb') 
+                     +(1- WaveSplit1%1) * ds[evar].sel(WaveNumb= 1+ WaveSplit1//1).fillna(0) )
+    
+
+
+filter_value= 0.15 #filters the fraction tramsport per temperature gradient where the temp grad is less than filter_value of its meridional maximum
+
 
 """method transport, gradient +fraction"""
 fig= plt.figure(fignr, figsize= (8, 10))
@@ -164,8 +190,8 @@ plt.clf()
 axs=fig.subplots(4, 1, sharex= 'col')
 
 
-dstot = ds[evar].sum(dim= "WaveNumb")
-trans_mean= dstot.mean(dim='time')
+
+trans_mean= transp.mean(dim='time')
 
 
 line, = axs[0].plot(ds.lat, trans_mean, label= 'Total')
@@ -231,7 +257,7 @@ axs[3].set_ylabel(f'Transport per \n{label} gradient  \n[W/m /{unit}/m]') #energ
 
 
 
-"""transport, gradient +fraction"""
+"""transport difference, gradient +fraction"""
 latcut= 85
 
 
@@ -242,9 +268,8 @@ plt.clf()
 axs=fig.subplots(4, 1, sharex= 'col')
 
 
-dstot = ds[evar].sum(dim= "WaveNumb")
-trans_mean_last= dstot.where(ds["time.year"]>= syear_2).mean(dim='time')
-trans_mean_first= dstot.where(ds["time.year"]<= eyear_1).mean(dim='time')
+trans_mean_last= transp.where(ds["time.year"]>= syear_2).mean(dim='time')
+trans_mean_first= transp.where(ds["time.year"]<= eyear_1).mean(dim='time')
 
 line2, =axs[0].plot(ds.lat, trans_mean_first, label=f'{syear_1}-{eyear_1}' )
 line1, =axs[0].plot(ds.lat, trans_mean_last, label=f'{syear_2}-{eyear_2}' )
@@ -295,12 +320,40 @@ axs[0].legend()
 if save:
     savedir= Mediadir +'/home/Energy_Transport/Figs/Transport-vs-gradient_2/'
     if not os.path.exists(savedir): os.makedirs(savedir)
-    file_name= fvar +'_' + evar
+    # file_name= fvar +'_' + evar 
+    file_name= savedir
+    for var in varlist: file_name += f'{var}_'
+    file_name += f'{transport_type}'
     file_name += f'_M{Member}'
     file_name += '_' +str(syear_1)+'-'+str(eyear_1)+'_'+str(syear_2)+'-'+str(eyear_2)
-    savefile= savedir+ file_name
-    print(savefile)
-    plt.savefig(savefile , bbox_inches='tight') 
+    print(file_name)
+    plt.savefig(file_name , bbox_inches='tight') 
 
 
 
+
+""" change in the variable"""
+fig= plt.figure(fignr, figsize= (8, 5))
+fignr+=1
+plt.clf()
+
+ax= fig.subplots(1, 1)
+
+var_difference= mean_last - mean_first
+
+weights = np.cos(np.deg2rad(var_difference.lat))
+weights.name = "weights"
+weights
+var_diff_weight= var_difference.weighted(weights)
+global_mean= var_diff_weight.mean('lat')
+
+print(f'global mean change {label}', float(global_mean.values)) #T2m change up to 13.6K at 85 degree north
+
+ax.plot(ds.lat, var_difference)
+ax.plot(ds.lat, len(ds.lat)* [global_mean], ls= '--', c= 'k')
+ax.set_ylabel(f'{label} \n change [{unit}]')
+ax.set_xlabel('Latitude')
+
+# ax.set_xscale('sine')
+ax.set_xticks(np.arange(-80,80.1, 20))
+ax.set_xticks(np.arange(-80,80.1, 10), minor=True)
