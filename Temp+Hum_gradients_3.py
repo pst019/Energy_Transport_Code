@@ -41,7 +41,7 @@ eyear_2= 2100
 fignr= 8
 
 
-varlist=[ 'T2M', 'vEtot'] #important that the u component is first
+varlist=[ 'T2M', 'vEtot'] 
 fvar= 'T2M' #the display variable
 label='temperature'
 unit='K'
@@ -49,26 +49,26 @@ evar='vEtot'
 evar_name='energy'
 
 
-varlist=[ 'T_850', 'vEtot'] #important that the u component is first
+varlist=[ 'T_850', 'vEtot'] 
 fvar= 'T' #the display variable
 label='temperature 850hPa'
 unit='K'
 evar='vEtot'
 evar_name='energy'
 
-# varlist=['TCWV','vQtot'] #important that the u component is first
+# varlist=['TCWV','vQtot'] 
 # fvar= 'TCWV' #the display variable
 # label='water vapor'
 # unit=r'kg/m$^2$' #not sure
 # evar='vQtot'
 # evar_name='latent energy'
 
-# varlist=['Q_850','vQtot'] #important that the u component is first
-# fvar= 'Q' #the display variable
-# label='Specific humidity'
-# unit='g/kg'
-# evar='vQtot'
-# evar_name='latent energy'
+varlist=['Q_850','vQtot']
+fvar= 'Q' #the display variable
+label='Specific humidity'
+unit='g/kg'
+evar='vQtot'
+evar_name='latent energy'
 
 
 transport_type= 'Total'
@@ -141,6 +141,9 @@ for vi, var in enumerate(varlist):
     
     
 ds= ds2
+
+latcut= 89
+ds= ds.where(np.abs(ds.lat) < latcut, drop= True) #Q has a problem at lat= 89.14
 
 if fvar == 'Q': ds[fvar] *= 1E3
 
