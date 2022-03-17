@@ -16,8 +16,8 @@ import pandas as pd
 from scipy.stats import permutation_test
 from scipy import stats
 
-#from functions import *
-import functions
+from functions import *
+#import functions
 
 params = {'axes.labelsize': 13,
           # 'axes.titlesize': 16,
@@ -28,8 +28,8 @@ plt.rcParams.update(params)
 
 user = os.getcwd().split('/')[2]
 
-model='EC_Earth'
-# model='ERA5'
+# model='EC_Earth'
+model='ERA5'
 
 
 if user=='pst019':
@@ -55,7 +55,7 @@ scale=''
 
 fix_y_axis= False
 trans_var= False # plot the transient component - not included in many panels - is specified in the loop for the transient transport, needed here for an if statement of the legend
-
+plot_large= False
 
 timeperiod= 'year'
 # timeperiod= 'DJF'
@@ -78,7 +78,7 @@ typ = 'Wavelength_smooth' # corrected
 
 energytyp= 'E' #total energy
 # energytyp= 'E_nostat' #total energy - no stationary contributions
-# energytyp= 'Q'
+energytyp= 'Q'
 # energytyp= 'D' # dry static
 
 ####'Mean' , 'Var', 'Change-Mean', 'Change-Var', 'Conv', 'Change-Conv', 'Change-Fraction', 'Change-Frac-Var'
@@ -100,23 +100,24 @@ energytyp= 'E' #total energy
 # pannellist= ['Var', 'Change-Var']
 
 
-# pannellist, fix_y_axis= ['Mean'], [2E8]
-# pannellist, timeperiod, fix_y_axis = ['Mean'], 'DJF', [[-1.8E8, 2.5E8]]
-# pannellist, timeperiod, fix_y_axis = ['Mean'], 'JJA', [[-2.5E8, 1.8E8]]
+# pannellist, fix_y_axis, plot_large= ['Mean'], [2E8], True
+# pannellist, timeperiod, fix_y_axis, plot_large = ['Mean'], 'DJF', [[-1.8E8, 2.5E8]], True
+# pannellist, timeperiod, fix_y_axis, plot_large = ['Mean'], 'JJA', [[-2.5E8, 1.8E8]], True
 # pannellist, fix_y_axis= ['Mean' , 'Var'], [[-2E8, 2E8], [0, 1.15E7]]  #for EC-Earth
 
 # pannellist, fix_y_axis= ['Change-Mean-ttest', 'Change-Fraction-ttest', 'Change-Conv-ttest'], [[-2E7, 2E7], [-.25, .35], [-15, 16]]
 # pannellist, fix_y_axis= ['Change-Mean-ttest'], [[-2E7, 2E7]]
 
 
-# pannellist, timeperiod, fix_y_axis= ['Change-Mean-ttest', 'Change-Fraction-ttest'], 'DJF', [[-2.2E7, 4E7], [-.4, .4]]
-pannellist, fix_y_axis=  ['Change-Var-ftest', 'Change-Frac-Var-ftest'], [[-2.5E6, 3E6], [-.35, .5]]
+# pannellist, timeperiod, fix_y_axis= ['Change-Mean-ttest', 'Change-Fraction-ttest'], 'JJA', [[-2.2E7, 4E7], [-.4, .4]]
+# pannellist, fix_y_axis=  ['Change-Var-ftest', 'Change-Frac-Var-ftest'], [[-2.5E6, 3E6], [-.35, .5]]
 
+pannellist, fix_y_axis= ['Var', 'Var-Fraction'], [[0, 1.2E7], [0, .4]]
 # pannellist, fix_y_axis= ['Var'], [[0, 1.2E7]]
 # pannellist, scale, fix_y_axis= ['Conv'], 'sine', [[-80, 120]]
 
 
-# save= False
+save= False
 save= True
 savedir= Mediadir_0 +'/home/Energy_Transport/Figs/Global_5/'
 
@@ -458,7 +459,8 @@ p_level= 0.05
 colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 
-fig= plt.figure(fignr, figsize= (8, 3.5*len(pannellist)))
+if plot_large: fig= plt.figure(fignr, figsize= (8, 5*len(pannellist)))
+else: fig= plt.figure(fignr, figsize= (8, 3.5*len(pannellist)))
 fignr+=1
 plt.clf()
 
@@ -494,8 +496,11 @@ for ip, ptype in enumerate(pannellist):
             for vi, var in enumerate(varlist):    
                 mean= ds[cat+'_'+var].mean(dim='time').mean(dim='Member')
                 
-                if vi == 0: axs[ip].plot(ds.lat, fac* mean, color= color, label= cat)
-                elif cat != 'Meri': axs[ip].plot(ds.lat, fac* mean, ls= '--', color= color, label= cat +' stat')
+                if vi == 0: axs[ip].plot(ds.lat, fac* mean, color= color, label= cat)               
+                elif (typ == 'Wavelength_smooth_2' and cat != 'Meri') or cat == 'Plan':
+                    axs[ip].plot(ds.lat, fac* mean, ls= '--', color= color, label= cat +' stat')
+                # elif cat == 'Plan': axs[ip].plot(ds.lat, fac* mean, ls= '--', color= color, label= cat +' stat')
+
 
                 if len(Memberlist) > 1:        
                     mean_std= ds[cat+'_'+var].mean(dim='time').std(dim='Member')        

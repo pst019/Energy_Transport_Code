@@ -13,14 +13,19 @@ user = os.getcwd().split('/')[2]
 model='ERA5'
 
 if user=='pst019':
-    Mediadir= '/media/'+user+'/Backup1/data/Energy_Transport/'+ model +'/' 
+    Mediadir= '/media/'+user+'/Backup1/'
+#    Mediadir= '/media/'+user+'/Backup/'
 elif user=='media':
-    Mediadir= '/run/media/pst019/Backup1/data/Energy_Transport/'+ model +'/'   
+    Mediadir= '/run/media/pst019/Backup1/'    
 else:
-    Mediadir= '/nird/projects/nird/NS9063K/Richard_KNMI'
+    if model=='EC_Earth': Mediadir= '/nird/projects/nird/NS9063K/Richard_KNMI/'
+    if model=='ERA5': Mediadir= '/nird/projects/nird/NS9063K/from_stallo/era5/'
 #'/nird/projects/NS9063K/Richard_KNMI'
 
+Mediadir_0= Mediadir    
 if model=='ERA5': Mediadir += 'EnergySplit/res_0.5x0.5/Waves/'
+
+
 
     
 import matplotlib.pyplot as plt
@@ -34,10 +39,8 @@ import pandas as pd
 
 
 save= True
-save= False
-imp= False
-imp= True
-#
+# save= False
+
 
 if model == 'EC_Earth':
     syear= 1950
@@ -49,6 +52,9 @@ elif model== 'ERA5':
     syear= 1979
     eyear= 2018
     Memberlist=[1]
+
+
+timeperiod= 'year'
 
 
 split_1 = int(2/3*syear + 1/3*eyear)
@@ -65,14 +71,23 @@ fignr= 7
 
 
 
-varlist= ['vEtot', 'vEsetot']
+varlist, energy_label= ['vEtot', 'vEsetot'], 'energy'
 # varlist= ['vQtot', 'vQsetot']
 
 monthlymeanlist=[False, True]
 
 
+intermediate_file_name= Mediadir_0 +'data/Energy_Transport/'+ model +'/intermediate_data/'+timeperiod+'-mean_'
+for var in varlist: intermediate_file_name += var+'_'
+intermediate_file_name += str(syear)+'-'+str(eyear)
+for Member in Memberlist: intermediate_file_name += '_M'+str(Member)
+intermediate_file_name +=  '.nc'
 
-if imp:
+
+if os.path.exists(intermediate_file_name):
+    ds= xr.open_dataset(intermediate_file_name)
+    
+else:
     print('Import ...')
     for Member in Memberlist:
         file_dir= Mediadir        
@@ -130,6 +145,9 @@ if imp:
             ds2= ds2.assign_coords(Member= Member).expand_dims('Member', axis= -1)
             ds= xr.merge([ds, ds2])
 
+    # ds.to_netcdf(intermediate_file_name)
+
+
 
 from matplotlib.transforms import Transform
 from matplotlib.ticker import (AutoLocator, AutoMinorLocator)
@@ -142,8 +160,8 @@ a= 6371E3
 var0= varlist[0]
 var1= varlist[1]
 
-for lat in [40]: #np.arange(-80, 85, 10):
-    fig= plt.figure(fignr)
+for lat in np.arange(-80, 85, 10):
+    fig= plt.figure(fignr, figsize= (8,5))
     plt.clf()
     
     ax = fig.add_subplot(111)
@@ -194,8 +212,8 @@ for lat in [40]: #np.arange(-80, 85, 10):
     ax.plot([-1, 20], [0,0], '--', c= 'k', lw= 1)
     ax.set_xticks(np.arange(0, 20.1))
     ax.legend()
-    ax.set_ylabel('Meridional energy transport per length unit [W/m]')
-    
+    # ax.set_ylabel('Meridional energy transport per length unit [W/m]')
+    ax.set_ylabel(f'Mean northward {energy_label}'+r' transport [W m$^{-1}$]')    
 
     
     vEtotal= float(dsn[var0].sum(dim='WaveNumb'))
@@ -213,8 +231,14 @@ for lat in [40]: #np.arange(-80, 85, 10):
     vEteplan= -1*vEseplan + float(dsn[var0].where(np.logical_and(dsn.WaveNumb > 0, dsn.WaveNumb < 1+ WaveSplit1//1)).sum(dim='WaveNumb')+ 
             WaveSplit1%1 * dsn[var0].sel(WaveNumb= 1+ WaveSplit1//1).fillna(0) )
     
+    
+    ###where to put the number of the total transport for planetary, synoptic
+    if dsn[var0].where(dsn.WaveNumb > 0, drop= True).max() > -1* dsn[var0].where(dsn.WaveNumb > 0, drop= True).min():
+        total_max_location = dsn[var0].where(dsn.WaveNumb > 0, drop= True).max()
+    else: total_max_location = dsn[var0].where(dsn.WaveNumb > 0, drop= True).min()
+    
     # ax.text(WaveSplit1/2, float(dsn[var0].sel(WaveNumb= WaveSplit1//2)),  str(np.round(100* vEteplan/vEtotal,1) )+'%', horizontalalignment='center', verticalalignment='center', weight='bold'  )
-    ax.text(WaveSplit1/2, dsn[var0].max(),  str(np.round(100* vEteplan/vEtotal,1) )+'%', horizontalalignment='center', verticalalignment='center', weight='bold'  )
+    ax.text(WaveSplit1/2, total_max_location,  str(np.round(100* vEteplan/vEtotal,1) )+'%', horizontalalignment='center', verticalalignment='center', weight='bold'  )
 
 
     # var= 'vEsetot'
@@ -237,7 +261,7 @@ for lat in [40]: #np.arange(-80, 85, 10):
                        + WaveSplit_up%1 * dsn[var0].sel(WaveNumb= 1+ WaveSplit_up//1).fillna(0) )
 
     if Split2: ax.text( (WaveSplit1 + WaveSplit2)/2, float(dsn[var0].sel(WaveNumb= WaveSplit1//1+2)),  str(np.round(100* vEtesyno/vEtotal,1) )+'%', horizontalalignment='center', verticalalignment='center', weight='bold'  )
-    else: ax.text( (WaveSplit1 + WaveSplit_up)/2, dsn[var0].max(),  str(np.round(100* vEtesyno/vEtotal,1) )+'%', horizontalalignment='center', verticalalignment='center', weight='bold'  )
+    else: ax.text( (WaveSplit1 + WaveSplit_up)/2, total_max_location ,  str(np.round(100* vEtesyno/vEtotal,1) )+'%', horizontalalignment='center', verticalalignment='center', weight='bold'  )
 
 
     # var= 'vEsetot'
@@ -263,22 +287,38 @@ for lat in [40]: #np.arange(-80, 85, 10):
 
 
     
-    new_tick_locations = np.array(np.arange(2, 20.1, 3))
     
     def tick_function(x):
-        V= LatCirc/1E3 * 1/x
+        V= LatCirc/1E3 * 1/x *1/1E3
         # V = 1/X
-        return ["%.0f" % z for z in V]
+        return ["%.1f" % z for z in V]
     
     ax2.set_xlim(ax.get_xlim())
+    
+    
+    new_tick_locations = np.array(np.arange(1, 20.1, 1))
     ax2.set_xticks(new_tick_locations)
-    ax2.set_xticklabels(tick_function(new_tick_locations))
-    ax2.set_xlabel("Wavelength [km]")
+    xlabel2= tick_function(new_tick_locations)
+    # if 'inf' in xlabel2:
+    #     xlabel2= ['$\infty$'] + xlabel2[1:]
+    
+    ax2.set_xticklabels(xlabel2)
+    
+    # new_tick_locations_minor = np.array(np.arange(2, 20.1))
+    ax2.tick_params(axis='x', rotation=30)
+    
+    ax2.set_xlabel("Wavelength [1000 km]")
     
     
+    
+    ax.ticklabel_format(useMathText=True) #to make 10**n on the axis
+
+    fig.canvas.draw()
+    ax.yaxis.offsetText.set_visible(False)
+    ax.text(-0.065, 1.0, ax.yaxis.offsetText.get_text(), transform=ax.transAxes)
     
     if save:
-        savedir= '../Figs/Scale+PowerSpec/'
+        savedir= Mediadir_0 +'/home/Energy_Transport/Figs/Scale+PowerSpec_2/'
         if not os.path.exists(savedir): os.makedirs(savedir)
         
         file_name= 'PowerSpec'

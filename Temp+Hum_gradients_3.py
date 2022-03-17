@@ -28,7 +28,7 @@ attrs = {"units": "days since 2000-01-01"}
 
 
 save= False
-save= True
+# save= True
 
 Member = 3
 syear_1= 1950
@@ -63,12 +63,12 @@ evar_name='energy'
 # evar='vQtot'
 # evar_name='latent energy'
 
-varlist=['Q_850','vQtot']
-fvar= 'Q' #the display variable
-label='Specific humidity'
-unit='g/kg'
-evar='vQtot'
-evar_name='latent energy'
+# varlist=['Q_850','vQtot']
+# fvar= 'Q' #the display variable
+# label='Specific humidity'
+# unit='g/kg'
+# evar='vQtot'
+# evar_name='latent energy'
 
 
 transport_type= 'Total'

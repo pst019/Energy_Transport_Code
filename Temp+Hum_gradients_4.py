@@ -51,14 +51,14 @@ transp_type_list= ['Total', 'Total', 'Plan', 'Syno', 'Meri']
 namelist= [r'E$_{tot}$', r'Q$_{tot}$', r'E$_{plan}$', r'E$_{syno}$', r'E$_{meri}$']
 evar_name='Energy'
 
-varlist=[ 'Q_850', 'vQtot'] 
-fvar= 'Q' #the display variable
-label='Specific humidity'
-unit='g/kg'
-evarlist=['vQtot', 'vQtot', 'vQtot', 'vQtot']
-transp_type_list= ['Total', 'Plan', 'Syno', 'Meri']
-namelist= [r'Q$_{tot}$', r'Q$_{plan}$', r'Q$_{syno}$', r'Q$_{meri}$']
-evar_name='Moisture'
+# varlist=[ 'Q_850', 'vQtot'] 
+# fvar= 'Q' #the display variable
+# label='Specific humidity'
+# unit='g/kg'
+# evarlist=['vQtot', 'vQtot', 'vQtot', 'vQtot']
+# transp_type_list= ['Total', 'Plan', 'Syno', 'Meri']
+# namelist= [r'Q$_{tot}$', r'Q$_{plan}$', r'Q$_{syno}$', r'Q$_{meri}$']
+# evar_name='Moisture'
 
 
 latlim= 80
@@ -222,19 +222,27 @@ for evar, transport_type, varname in zip(evarlist, transp_type_list, namelist):
     line, =axs[2].plot(ds.lat, trans_mean_first, label=f'{varname}') # {syear_1}+' )
     axs[2].plot(ds.lat, trans_mean_last, color= line.get_color() , ls='--' ) #, label=f'{varname} {syear_2}+'
     
-    axs[3].plot(ds.lat, diff_fac* np.ma.masked_where(absfilter_sav_first!= 0, trans_mean_first/mean_first_grad_sav), color= line.get_color())
-    axs[3].plot(ds.lat, diff_fac* np.ma.masked_where(absfilter_sav_last!= 0, trans_mean_last/mean_last_grad_sav), color= line.get_color(), ls= '--')
+    # axs[3].plot(ds.lat, diff_fac* np.ma.masked_where(absfilter_sav_first!= 0, -1* trans_mean_first/mean_first_grad_sav), color= line.get_color())
+    # axs[3].plot(ds.lat, diff_fac* np.ma.masked_where(absfilter_sav_last!= 0, -1* trans_mean_last/mean_last_grad_sav), color= line.get_color(), ls= '--')
+    
+    if fvar== 'Q': latfilter= 10
+    else: latfilter= 23
+    
+    tropical_filter= np.abs(ds.lat) < latfilter
+    axs[3].plot(ds.lat, diff_fac* np.ma.masked_where(tropical_filter!= 0, -1* trans_mean_first/mean_first_grad_sav), color= line.get_color())
+    axs[3].plot(ds.lat, diff_fac* np.ma.masked_where(tropical_filter!= 0, -1* trans_mean_last/mean_last_grad_sav), color= line.get_color(), ls= '--')
 
-    ax2.plot(ds.lat, diff_fac* np.ma.masked_where(absfilter_sav_first!= 0, trans_mean_first/mean_first_grad_sav), color= line.get_color())
-    ax2.plot(ds.lat, diff_fac* np.ma.masked_where(absfilter_sav_last!= 0, trans_mean_last/mean_last_grad_sav), color= line.get_color(), ls= '--')
+
+    ax2.plot(ds.lat, diff_fac* np.ma.masked_where(absfilter_sav_first!= 0, -1* trans_mean_first/mean_first_grad_sav), color= line.get_color())
+    ax2.plot(ds.lat, diff_fac* np.ma.masked_where(absfilter_sav_last!= 0, -1* trans_mean_last/mean_last_grad_sav), color= line.get_color(), ls= '--')
 
 
 for axnr in [1, 2,3]:
     axs[axnr].plot([-latcut, latcut], [0,0], c= 'k', linewidth= 0.5, linestyle= '--')
     axs[axnr].ticklabel_format(useMathText=True) #to make 10**n on the axis
 
-axs[1].plot([-latcut, latcut], [filter_level,filter_level], c= 'grey', linewidth= 0.5, linestyle= '--')
-axs[1].plot([-latcut, latcut], [-filter_level, -filter_level], c= 'grey', linewidth= 0.5, linestyle= '--')
+# axs[1].plot([-latcut, latcut], [filter_level,filter_level], c= 'grey', linewidth= 0.5, linestyle= '--')
+# axs[1].plot([-latcut, latcut], [-filter_level, -filter_level], c= 'grey', linewidth= 0.5, linestyle= '--')
 
 axs[3].set_xticks(np.arange(-80,80.1, 10), minor=True)
 axs[3].set_xlim(-latlim, latlim)
@@ -243,6 +251,8 @@ axs[2].set_ylabel(f'{evar_name} transport \n per lenth unit [W/m]') #energy tran
 axs[0].set_ylabel(f'{label} \n [{unit}]')
 axs[1].set_ylabel(f'{label} gradient \n [{unit} (100 km)'+r'$^{-1}$]')
 axs[3].set_ylabel(f'Transport per \n{label} gradient  \n[W/{unit}]') #energy transport accross a latitude band
+axs[3].set_ylabel(f'Diffusion constant  \n[W/{unit}]') #energy transport accross a latitude band
+
 
 axs[0].legend(ncol= 2)
 if len(namelist) == 4:axs[2].legend(ncol= 4)

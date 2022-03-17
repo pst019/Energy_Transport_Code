@@ -23,24 +23,40 @@ model='EC_Earth'
 model='ERA5'
 
 
-if user=='pst019':
-    Mediadir= '/media/'+user+'/Backup1/data/Energy_Transport/'+ model +'/'
+# if user=='pst019':
+#     Mediadir= '/media/'+user+'/Backup1/data/Energy_Transport/'+ model +'/'
     
+# elif user=='media':
+#     Mediadir= '/run/media/pst019/Backup1/data/Energy_Transport/'+ model +'/'    
+# else:
+#     if model=='EC_Earth': Mediadir= '/nird/projects/nird/NS9063K/Richard_KNMI/'
+#     if model=='ERA5': Mediadir= '/nird/projects/nird/NS9063K/from_stallo/era5/'
+# #'/nird/projects/NS9063K/Richard_KNMI'
+    
+    
+# if model=='ERA5': Mediadir += 'EnergySplit/res_0.5x0.5/Waves/'
+
+
+
+if user=='pst019':
+    Mediadir= '/media/'+user+'/Backup1/'
+#    Mediadir= '/media/'+user+'/Backup/'
+
 elif user=='media':
-    Mediadir= '/run/media/pst019/Backup1/data/Energy_Transport/'+ model +'/'    
+    Mediadir= '/run/media/pst019/Backup1/'    
 else:
     if model=='EC_Earth': Mediadir= '/nird/projects/nird/NS9063K/Richard_KNMI/'
     if model=='ERA5': Mediadir= '/nird/projects/nird/NS9063K/from_stallo/era5/'
 #'/nird/projects/NS9063K/Richard_KNMI'
-    
-    
+
+Mediadir_0= Mediadir    
+Mediadir += 'data/Energy_Transport/'+ model +'/'
 if model=='ERA5': Mediadir += 'EnergySplit/res_0.5x0.5/Waves/'
 
 
 
-
 save= True
-# save= False
+save= False
 imp= False
 imp= True
 #
@@ -365,9 +381,12 @@ axs[0].plot(ds.lat,  transp['transi'].argmax(dim='WaveNumb').where((low_transp_f
 
 rolling_interval = 10 #in degree latitude
 rolling_values= int(rolling_interval/(ds.lat[0].values- ds.lat[1].values))
-axs[1].plot(ds.lat,  (LatCirc/transp['tot'].argmax(dim='WaveNumb').where(low_transp_filter, np.nan)).rolling(lat= rolling_values, center= True, min_periods= .8*rolling_values).mean()/1E3 )
-axs[1].plot(ds.lat,  (LatCirc/transp['stat'].argmax(dim='WaveNumb').where(low_transp_filter, np.nan)).rolling(lat= rolling_values, center= True, min_periods= .8*rolling_values).mean()/1E3 )
-axs[1].plot(ds.lat,  (LatCirc/transp['transi'].argmax(dim='WaveNumb').where((low_transp_filter) & (low_transp_filter_transi), np.nan)).rolling(lat= rolling_values, center= True, min_periods= .8*rolling_values).mean()/1E3 )
+
+# axs[1].plot(ds.lat,  (LatCirc/transp['tot'].argmax(dim='WaveNumb').where(low_transp_filter, np.nan)).rolling(lat= rolling_values, center= True, min_periods= .8*rolling_values).mean()/1E3 )
+axs[1].plot(ds.lat,  (LatCirc/transp['tot'].argmax(dim='WaveNumb').where(low_transp_filter, np.nan)).rolling(lat= rolling_values, center= True).mean()/1E3 )
+
+axs[1].plot(ds.lat,  (LatCirc/transp['stat'].argmax(dim='WaveNumb').where(low_transp_filter, np.nan)).rolling(lat= rolling_values, center= True).mean()/1E3 )
+axs[1].plot(ds.lat,  (LatCirc/transp['transi'].argmax(dim='WaveNumb').where((low_transp_filter) & (low_transp_filter_transi), np.nan)).rolling(lat= rolling_values, center= True).mean()/1E3 )
 
 axs[0].legend()
 plt.xlim(-latcut, latcut)
