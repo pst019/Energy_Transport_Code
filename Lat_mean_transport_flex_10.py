@@ -33,8 +33,8 @@ model='ERA5'
 
 
 if user=='pst019':
-    Mediadir= '/media/'+user+'/Backup1/'
-#    Mediadir= '/media/'+user+'/Backup/'
+    # Mediadir= '/media/'+user+'/Backup1/'
+    Mediadir= '/media/'+user+'/Backup/'
 
 elif user=='media':
     Mediadir= '/run/media/pst019/Backup1/'    
@@ -48,7 +48,7 @@ Mediadir += 'data/Energy_Transport/'+ model +'/'
 if model=='ERA5': Mediadir += 'EnergySplit/res_0.5x0.5/Waves/'
 
 
-fignr= 7
+fignr= 8
 
 scale= 'sine'
 scale=''
@@ -78,7 +78,7 @@ typ = 'Wavelength_smooth' # corrected
 
 energytyp= 'E' #total energy
 # energytyp= 'E_nostat' #total energy - no stationary contributions
-energytyp= 'Q'
+# energytyp= 'Q'
 # energytyp= 'D' # dry static
 
 ####'Mean' , 'Var', 'Change-Mean', 'Change-Var', 'Conv', 'Change-Conv', 'Change-Fraction', 'Change-Frac-Var'
@@ -109,10 +109,10 @@ energytyp= 'Q'
 # pannellist, fix_y_axis= ['Change-Mean-ttest'], [[-2E7, 2E7]]
 
 
-# pannellist, timeperiod, fix_y_axis= ['Change-Mean-ttest', 'Change-Fraction-ttest'], 'JJA', [[-2.2E7, 4E7], [-.4, .4]]
+pannellist, timeperiod, fix_y_axis= ['Change-Mean-ttest', 'Change-Fraction-ttest'], 'DJF', [[-2.2E7, 4E7], [-.4, .4]]
 # pannellist, fix_y_axis=  ['Change-Var-ftest', 'Change-Frac-Var-ftest'], [[-2.5E6, 3E6], [-.35, .5]]
 
-pannellist, fix_y_axis= ['Var', 'Var-Fraction'], [[0, 1.2E7], [0, .4]]
+# pannellist, fix_y_axis= ['Var', 'Var-Fraction'], [[0, 1.2E7], [0, .4]]
 # pannellist, fix_y_axis= ['Var'], [[0, 1.2E7]]
 # pannellist, scale, fix_y_axis= ['Conv'], 'sine', [[-80, 120]]
 

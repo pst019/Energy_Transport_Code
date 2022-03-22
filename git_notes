@@ -118,6 +118,7 @@ git clone git@github.com:pst019/Energy_Transport_Code.git Energy_Transport_Code
 -to update git on spyder:
 !git add *
 !git commit -m "setting directory"
-!git push origin main
+!git push origin main # to push the changes to github
+!git pull origin main # to get the latest version from github
 
 
