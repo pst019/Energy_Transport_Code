@@ -10,8 +10,6 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
-#import glob as glob
-#import datetime
 import pandas as pd
 from scipy.stats import permutation_test
 from scipy import stats
@@ -78,11 +76,11 @@ typ = 'Wavelength_smooth' # corrected
 
 energytyp= 'E' #total energy
 # energytyp= 'E_nostat' #total energy - no stationary contributions
-energytyp= 'Q'
+# energytyp= 'Q'
 # energytyp= 'D' # dry static
 
 ####'Mean' , 'Var', 'Change-Mean', 'Change-Var', 'Conv', 'Change-Conv', 'Change-Fraction', 'Change-Frac-Var'
-# pannellist= ['Mean']
+pannellist= ['Mean']
 # pannellist= ['Mean' , 'Var'] #, 'Change-Mean', 'Change-Var', 'Conv', 'Change-Conv', 'Change-Fraction', 'Change-Frac-Var'
 # pannellist= ['Mean' , 'Change-Mean'] #, 'Change-Var', 'Conv', 'Change-Conv'
 # pannellist= ['Mean' , 'Conv'] 
@@ -105,20 +103,20 @@ energytyp= 'Q'
 # pannellist, timeperiod, fix_y_axis, plot_large = ['Mean'], 'JJA', [[-2.5E8, 1.8E8]], True
 # pannellist, fix_y_axis= ['Mean' , 'Var'], [[-2E8, 2E8], [0, 1.15E7]]  #for EC-Earth
 
-# pannellist, fix_y_axis= ['Change-Mean-ttest', 'Change-Fraction-ttest', 'Change-Conv-ttest'], [[-2E7, 2E7], [-.25, .35], [-15, 16]]
+# pannellist, fix_y_axis= ['Change-Mean-ttest', 'Change-Fraction-ttest', 'Change-Conv-ttest'], [[-2E7, 2E7], [-.2, .4], [-15, 16]]
 # pannellist, fix_y_axis= ['Change-Mean-ttest'], [[-2E7, 2E7]]
 
 
 # pannellist, timeperiod, fix_y_axis= ['Change-Mean-ttest', 'Change-Fraction-ttest'], 'JJA', [[-2.2E7, 4E7], [-.4, .4]]
-# pannellist, fix_y_axis=  ['Change-Var-ftest', 'Change-Frac-Var-ftest'], [[-2.5E6, 3E6], [-.35, .5]]
+# pannellist, fix_y_axis=  ['Change-Var-ftest', 'Change-Frac-Var-ftest'], [[-2.5E6, 3E6], [-.35, .65]]
 
-pannellist, fix_y_axis= ['Var', 'Var-Fraction'], [[0, 1.2E7], [0, .4]]
+# pannellist, fix_y_axis= ['Var', 'Var-Fraction'], [[0, 1.2E7], [0, .4]]
 # pannellist, fix_y_axis= ['Var'], [[0, 1.2E7]]
 # pannellist, scale, fix_y_axis= ['Conv'], 'sine', [[-80, 120]]
 
 
 save= False
-save= True
+# save= True
 savedir= Mediadir_0 +'/home/Energy_Transport/Figs/Global_5/'
 
 
@@ -745,6 +743,8 @@ for ip, ptype in enumerate(pannellist):
 
         ds_var/= ds_mean
         ds1, ds2= split_stack_ds(ds_var, split_2, split_1, dim= ("time", "Member"))
+        
+        
         
         diff= np.mean(ds1, axis= 1) - np.mean(ds2, axis= 1)
         pval= stats.ttest_ind(ds1, ds2, axis= 1)[1]

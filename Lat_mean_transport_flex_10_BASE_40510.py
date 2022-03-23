@@ -28,8 +28,8 @@ plt.rcParams.update(params)
 
 user = os.getcwd().split('/')[2]
 
-model='EC_Earth'
-# model='ERA5'
+# model='EC_Earth'
+model='ERA5'
 
 
 if user=='pst019':
@@ -48,7 +48,7 @@ Mediadir += 'data/Energy_Transport/'+ model +'/'
 if model=='ERA5': Mediadir += 'EnergySplit/res_0.5x0.5/Waves/'
 
 
-fignr= 3
+fignr= 7
 
 scale= 'sine'
 scale=''
@@ -740,7 +740,7 @@ for ip, ptype in enumerate(pannellist):
         
         ds_var= dstot.copy()
         
-        ds_mean= ds_var.where(ds["time.year"]<= split_1).mean(dim=('time', 'Member')) 
+        ds_mean= ds_var.mean(dim=('time', 'Member')) 
         meanfilter= np.abs(ds_mean) < filter_level        
 
         ds_var/= ds_mean
@@ -763,7 +763,7 @@ for ip, ptype in enumerate(pannellist):
             for vi, var in enumerate(varlist): 
                 ds_var= ds[cat+'_'+var].copy()
                 
-                ds_mean= ds_var.where(ds["time.year"]<= split_1).mean(dim=('time', 'Member'))
+                ds_mean= ds_var.mean(dim=('time', 'Member'))
                 meanfilter= np.abs(ds_mean) < filter_level        
 
                 ds_var/= ds_mean
@@ -797,7 +797,7 @@ for ip, ptype in enumerate(pannellist):
         ds1, ds2= split_stack_ds(anomalie, split_2, split_1, dim= ("time", "Member"))        
         pval= np.array([stats.bartlett(ds1[n], ds2[n]).pvalue for n in range(ds1.shape[0])])       
 
-        variability= anomalie.where(ds["time.year"]<= split_1).std(dim=('time','Member') )
+        variability= anomalie.std(dim=('time','Member') )
         filter_level= 0.2* np.abs(variability).max()
         absfilter= np.abs(variability) < filter_level     
         FILTER= np.logical_or(pval > p_level, absfilter)
@@ -819,7 +819,7 @@ for ip, ptype in enumerate(pannellist):
                 ds1, ds2= split_stack_ds(anomalie, split_2, split_1, dim= ("time", "Member"))        
                 pval= np.array([stats.bartlett(ds1[n], ds2[n]).pvalue for n in range(ds1.shape[0])])   
                 
-                variability= anomalie.where(ds["time.year"]<= split_1).std(dim=('time', 'Member'))
+                variability= anomalie.std(dim=('time', 'Member'))
                 absfilter= np.abs(variability) < filter_level     
                 FILTER= np.logical_or(pval > p_level, absfilter)
 
@@ -837,8 +837,8 @@ for ip, ptype in enumerate(pannellist):
 
 
 
-        axs[ip].set_ylabel('Fraction in variability change\n') #' \n '+str(split_2)+'-'+str(eyear)+' - '+str(syear)+'-'+str(split_1)
-
+        axs[ip].set_ylabel('Fraction in variability change\n' #' \n '+str(split_2)+'-'+str(eyear)+' - '+str(syear)+'-'+str(split_1)
+                            +' [W m$^{-1}$]')
 
 
 

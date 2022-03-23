@@ -28,13 +28,13 @@ plt.rcParams.update(params)
 
 user = os.getcwd().split('/')[2]
 
-model='EC_Earth'
-# model='ERA5'
+# model='EC_Earth'
+model='ERA5'
 
 
 if user=='pst019':
-    Mediadir= '/media/'+user+'/Backup1/'
-#    Mediadir= '/media/'+user+'/Backup/'
+    # Mediadir= '/media/'+user+'/Backup1/'
+    Mediadir= '/media/'+user+'/Backup/'
 
 elif user=='media':
     Mediadir= '/run/media/pst019/Backup1/'    
@@ -48,7 +48,7 @@ Mediadir += 'data/Energy_Transport/'+ model +'/'
 if model=='ERA5': Mediadir += 'EnergySplit/res_0.5x0.5/Waves/'
 
 
-fignr= 3
+fignr= 8
 
 scale= 'sine'
 scale=''
@@ -78,7 +78,7 @@ typ = 'Wavelength_smooth' # corrected
 
 energytyp= 'E' #total energy
 # energytyp= 'E_nostat' #total energy - no stationary contributions
-energytyp= 'Q'
+# energytyp= 'Q'
 # energytyp= 'D' # dry static
 
 ####'Mean' , 'Var', 'Change-Mean', 'Change-Var', 'Conv', 'Change-Conv', 'Change-Fraction', 'Change-Frac-Var'
@@ -109,10 +109,10 @@ energytyp= 'Q'
 # pannellist, fix_y_axis= ['Change-Mean-ttest'], [[-2E7, 2E7]]
 
 
-# pannellist, timeperiod, fix_y_axis= ['Change-Mean-ttest', 'Change-Fraction-ttest'], 'JJA', [[-2.2E7, 4E7], [-.4, .4]]
+pannellist, timeperiod, fix_y_axis= ['Change-Mean-ttest', 'Change-Fraction-ttest'], 'DJF', [[-2.2E7, 4E7], [-.4, .4]]
 # pannellist, fix_y_axis=  ['Change-Var-ftest', 'Change-Frac-Var-ftest'], [[-2.5E6, 3E6], [-.35, .5]]
 
-pannellist, fix_y_axis= ['Var', 'Var-Fraction'], [[0, 1.2E7], [0, .4]]
+# pannellist, fix_y_axis= ['Var', 'Var-Fraction'], [[0, 1.2E7], [0, .4]]
 # pannellist, fix_y_axis= ['Var'], [[0, 1.2E7]]
 # pannellist, scale, fix_y_axis= ['Conv'], 'sine', [[-80, 120]]
 
@@ -740,7 +740,7 @@ for ip, ptype in enumerate(pannellist):
         
         ds_var= dstot.copy()
         
-        ds_mean= ds_var.where(ds["time.year"]<= split_1).mean(dim=('time', 'Member')) 
+        ds_mean= ds_var.mean(dim=('time', 'Member')) 
         meanfilter= np.abs(ds_mean) < filter_level        
 
         ds_var/= ds_mean
@@ -763,7 +763,7 @@ for ip, ptype in enumerate(pannellist):
             for vi, var in enumerate(varlist): 
                 ds_var= ds[cat+'_'+var].copy()
                 
-                ds_mean= ds_var.where(ds["time.year"]<= split_1).mean(dim=('time', 'Member'))
+                ds_mean= ds_var.mean(dim=('time', 'Member'))
                 meanfilter= np.abs(ds_mean) < filter_level        
 
                 ds_var/= ds_mean
@@ -797,7 +797,7 @@ for ip, ptype in enumerate(pannellist):
         ds1, ds2= split_stack_ds(anomalie, split_2, split_1, dim= ("time", "Member"))        
         pval= np.array([stats.bartlett(ds1[n], ds2[n]).pvalue for n in range(ds1.shape[0])])       
 
-        variability= anomalie.where(ds["time.year"]<= split_1).std(dim=('time','Member') )
+        variability= anomalie.std(dim=('time','Member') )
         filter_level= 0.2* np.abs(variability).max()
         absfilter= np.abs(variability) < filter_level     
         FILTER= np.logical_or(pval > p_level, absfilter)
@@ -819,7 +819,7 @@ for ip, ptype in enumerate(pannellist):
                 ds1, ds2= split_stack_ds(anomalie, split_2, split_1, dim= ("time", "Member"))        
                 pval= np.array([stats.bartlett(ds1[n], ds2[n]).pvalue for n in range(ds1.shape[0])])   
                 
-                variability= anomalie.where(ds["time.year"]<= split_1).std(dim=('time', 'Member'))
+                variability= anomalie.std(dim=('time', 'Member'))
                 absfilter= np.abs(variability) < filter_level     
                 FILTER= np.logical_or(pval > p_level, absfilter)
 
@@ -837,8 +837,8 @@ for ip, ptype in enumerate(pannellist):
 
 
 
-        axs[ip].set_ylabel('Fraction in variability change\n') #' \n '+str(split_2)+'-'+str(eyear)+' - '+str(syear)+'-'+str(split_1)
-
+        axs[ip].set_ylabel('Fraction in variability change\n' #' \n '+str(split_2)+'-'+str(eyear)+' - '+str(syear)+'-'+str(split_1)
+                            +' [W m$^{-1}$]')
 
 
 
