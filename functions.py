@@ -7,12 +7,11 @@ Created on Fri Feb 25 10:47:20 2022
 """
 
 
-"""make the sine scale"""
 import matplotlib.scale as mscale
 import matplotlib.transforms as mtransforms
 import matplotlib.ticker as ticker
-
 import numpy as np
+
 
 class SineScale(mscale.ScaleBase):
     """
@@ -69,9 +68,21 @@ mscale.register_scale(SineScale)
 
 
 
+def stack_ds(ds, dim= ("time", "Member")):
+    return np.array(ds.stack(x= dim) )
+
+
+def split_stack_ds(ds, split_2, split_1, dim= ("time", "Member")):
+    return (np.array(ds.where(ds["time.year"]>= split_2, drop= True).stack(x= ("time", "Member")) ),
+            np.array(ds.where(ds["time.year"]<= split_1, drop= True).stack(x= ("time", "Member")) ) )
+
+
+
+
+
 def sign_change_ds(ds1):
-    #ds1 is the data array
-    #dslat is just ds.lat
+    #finds the latitude of the sign change
+    #ds1 is a data array
     from scipy.signal import argrelextrema
     # from scipy import ndimage
     latsmooth= len(ds1.lat)//10 #10% of the latitudes are smoothed in the filter

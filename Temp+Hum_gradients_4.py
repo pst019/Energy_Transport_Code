@@ -23,6 +23,8 @@ import cartopy.crs as ccrs
 import matplotlib as mpl
 from functions import *
 import pandas as pd
+import scipy.signal
+
 
 attrs = {"units": "days since 2000-01-01"}
 
@@ -71,7 +73,6 @@ diff_fac= 100E3 #to compute from W/m / K/100km to W/K
 
 file_dir= Mediadir + 'data/Energy_Transport/EC_Earth/Member'+str(Member) +'/'
 
-# latgrid= np.arange(-85, 85, 1)
 
 
 """ import data"""
@@ -95,18 +96,18 @@ for vi, var in enumerate(varlist):
         
                 if year == syear_1 and month== 1:
                     if var in ['vEtot', 'vQtot']:
-                        ds0= xr.open_dataset(file_dir + var+'.'+str(year)+'.'+str(month).zfill(2)+ '.WN20.nc').mean(dim = 'time')#.interp(lat= latgrid)
+                        ds0= xr.open_dataset(file_dir + var+'.'+str(year)+'.'+str(month).zfill(2)+ '.WN20.nc').mean(dim = 'time')
                     else:
-                        ds0= xr.open_dataset(file_dir + var +'/' + var+'_'+str(year)+'_'+ str(month).zfill(2)+ '.nc').mean(dim=['lon', 'time'])#.interp(lat= latgrid)
-        
+                        ds0= xr.open_dataset(file_dir + var +'/' + var+'_'+str(year)+'_'+ str(month).zfill(2)+ '.nc').mean(dim=['lon', 'time'])
+                        
                     ds0= ds0.assign_coords(time=('time', pd.date_range(str(year)+'-'+str(month), periods= 1)))
                     
         
                 else:
                     if var in ['vEtot', 'vQtot']:
-                        ds1= xr.open_dataset(file_dir + var+'.'+str(year)+'.'+str(month).zfill(2)+ '.WN20.nc').mean(dim = 'time')#.interp(lat= latgrid)
+                        ds1= xr.open_dataset(file_dir + var+'.'+str(year)+'.'+str(month).zfill(2)+ '.WN20.nc').mean(dim = 'time')
                     else:
-                        ds1= xr.open_dataset(file_dir + var +'/' + var+'_'+str(year)+'_'+ str(month).zfill(2)+ '.nc').mean(dim=['lon', 'time'])#.interp(lat= latgrid)
+                        ds1= xr.open_dataset(file_dir + var +'/' + var+'_'+str(year)+'_'+ str(month).zfill(2)+ '.nc').mean(dim=['lon', 'time'])
         
                     ds1= ds1.assign_coords(time=('time', pd.date_range(str(year)+'-'+str(month), periods= 1)))
                     
@@ -139,18 +140,7 @@ ds= ds.where(np.abs(ds.lat) < latcut, drop= True) #Q has a problem at lat= 89.14
 if fvar == 'Q': ds[fvar] *= 1E3
 
 
-
-"""test plot """
-# fig= plt.figure(fignr)
-# fignr+=1
-# plt.clf()
-
-# plt.plot(ds.time, ds[fvar].sel(lat=70, method='nearest'))
-
-
-import scipy.signal
-
-    
+  
 
 ds= ds.reindex(lat= list(reversed(ds.lat)))
 
@@ -158,8 +148,6 @@ a= 6371E3
 LatCirc = 2* np.pi * a * np.cos(np.deg2rad(ds.lat))
 Split1= 8000E3
 WaveSplit1= LatCirc/Split1
-
-
 
 
 
@@ -174,9 +162,6 @@ fignr+=1
 plt.clf()
 
 axs=fig.subplots(4, 1, sharex= 'col', gridspec_kw={'height_ratios': [1, 1, 1.5, 1.5]})
-
-fig2= plt.figure(fignr, figsize= (8, 5))
-ax2=fig2.subplots(1, 1)
 
 
 
@@ -232,9 +217,6 @@ for evar, transport_type, varname in zip(evarlist, transp_type_list, namelist):
     axs[3].plot(ds.lat, diff_fac* np.ma.masked_where(tropical_filter!= 0, -1* trans_mean_first/mean_first_grad_sav), color= line.get_color())
     axs[3].plot(ds.lat, diff_fac* np.ma.masked_where(tropical_filter!= 0, -1* trans_mean_last/mean_last_grad_sav), color= line.get_color(), ls= '--')
 
-
-    ax2.plot(ds.lat, diff_fac* np.ma.masked_where(absfilter_sav_first!= 0, -1* trans_mean_first/mean_first_grad_sav), color= line.get_color())
-    ax2.plot(ds.lat, diff_fac* np.ma.masked_where(absfilter_sav_last!= 0, -1* trans_mean_last/mean_last_grad_sav), color= line.get_color(), ls= '--')
 
 
 for axnr in [1, 2,3]:

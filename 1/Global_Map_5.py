@@ -10,7 +10,7 @@ import os
 user = os.getcwd().split('/')[2]
 
 if user=='pst019':
-    Mediadir= '/media/'+user+'/Backup1/'
+    Mediadir= '/media/'+user+'/Backup/'
 
 else:
     Mediadir= '/run/media/pst019/Backup/'
@@ -55,14 +55,8 @@ fignr= 3
 varlist=[ 'uQtotLLd', 'vQtotLLd'] #important that the u component is first
 varfilelist=[ 'uQtotLL', 'vQtotLL']
 
-varlist=[ 'uEtotLLd', 'vEtotLLd'] #important that the u component is first
-varfilelist=[ 'uEtotLL', 'vEtotLL']
-
-varlist=['uEtotLLd', 'vEtotLLd', ] #important that the u component is first
-varfilelist=[ 'uEtotLL', 'vEtotLL']
-
-dvar= 'conv_Q' #the display variable
-dvar= 'conv_E'
+#varlist=[ 'uEtotLLd', 'vEtotLLd'] #important that the u component is first
+#varfilelist=[ 'uEtotLL', 'vEtotLL']
 
 file_dir= Mediadir + 'data/Energy_Transport/EC_Earth/Member'+str(Member) +'/'
 
@@ -73,8 +67,8 @@ file_dir= Mediadir + 'data/Energy_Transport/EC_Earth/Member'+str(Member) +'/'
 #axs=fig.subplots(3, 1, sharex= 'col')
 
 if imp:
-    for vi, vari in enumerate(varlist):
-        print(vari)
+    for vi, var in enumerate(varlist):
+        print(var)
         varfile= varfilelist[vi]
     
         for year in range(syear, eyear+1):
@@ -106,7 +100,7 @@ if imp:
 
         """the last loop step to merge the different variables in one ds"""
         if year == eyear and month == 12:
-            if vari== varlist[0]:
+            if var== varlist[0]:
                 ds2= ds0
             else:
                 ds2= xr.merge([ds2, ds0])
@@ -129,7 +123,8 @@ circle = mpath.Path(verts * radius + center)
 ds = ds.where(ds.lat < 85, drop= True)
 
 
-
+#dvar= var
+dvar= 'conv_Q' #the display variable
 
 
 dx= (float(ds.lon[1])- float(ds.lon[0]) ) *110E3 * np.cos(np.deg2rad(ds.lat.values))
@@ -152,7 +147,7 @@ catlist= ['Plan', 'Syno', 'Total']
 figsize= (10,4)
 figx, figy= 3, 1
 
-for i in range(1):
+for i in range(2):
     fig= plt.figure(fignr, figsize)
     fignr+=1
     plt.clf()

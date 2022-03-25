@@ -4,19 +4,18 @@
 Created on Thu Oct 15 10:55:54 2020
 
 @author: pst019
+
+use env39
 """
 
 import os
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
-#import glob as glob
-#import datetime
 import pandas as pd
-from scipy.stats import permutation_test
 from scipy import stats
 
-from functions import *
+from functions import split_stack_ds, sign_change_ds, SineScale
 #import functions
 
 params = {'axes.labelsize': 13,
@@ -29,33 +28,35 @@ plt.rcParams.update(params)
 user = os.getcwd().split('/')[2]
 
 model='EC_Earth'
-# model='ERA5'
+model='ERA5'
 
 
 if user=='pst019':
     Mediadir= '/media/'+user+'/Backup1/'
 #    Mediadir= '/media/'+user+'/Backup/'
-
-elif user=='media':
-    Mediadir= '/run/media/pst019/Backup1/'    
+ 
 else:
     if model=='EC_Earth': Mediadir= '/nird/projects/nird/NS9063K/Richard_KNMI/'
     if model=='ERA5': Mediadir= '/nird/projects/nird/NS9063K/from_stallo/era5/'
 #'/nird/projects/NS9063K/Richard_KNMI'
 
-Mediadir_0= Mediadir    
-Mediadir += 'data/Energy_Transport/'+ model +'/'
-if model=='ERA5': Mediadir += 'EnergySplit/res_0.5x0.5/Waves/'
+   
+datadir = Mediadir + 'data/Energy_Transport/'+ model +'/'
+if model=='ERA5': datadir += 'EnergySplit/res_0.5x0.5/Waves/'
 
 
-fignr= 3
+fignr= 4
 
 scale= 'sine'
 scale=''
 
 fix_y_axis= False
-trans_var= False # plot the transient component - not included in many panels - is specified in the loop for the transient transport, needed here for an if statement of the legend
 plot_large= False
+
+latcut= 89
+
+unit='PerM'
+# unit='LatCycl'
 
 timeperiod= 'year'
 # timeperiod= 'DJF'
@@ -64,6 +65,8 @@ timeperiod= 'year'
 # timeperiod= 'SON'
 
 rolling= True # a rolling filter on the latitude of 5 datapoints - maybe remove - but might be useful for the convergence
+
+p_level= 0.05 #for significance testing of the change between earlier and late period
 
 typ = 'Wavelength_smooth' # corrected
 # typ = 'Wavelength_smooth_2' #corrected
@@ -76,7 +79,7 @@ typ = 'Wavelength_smooth' # corrected
 #typ = 'Eddies'
 
 
-energytyp= 'E' #total energy
+# energytyp= 'E' #total energy
 # energytyp= 'E_nostat' #total energy - no stationary contributions
 energytyp= 'Q'
 # energytyp= 'D' # dry static
@@ -119,7 +122,7 @@ pannellist, fix_y_axis= ['Var', 'Var-Fraction'], [[0, 1.2E7], [0, .4]]
 
 save= False
 save= True
-savedir= Mediadir_0 +'/home/Energy_Transport/Figs/Global_5/'
+savedir= Mediadir +'/home/Energy_Transport/Figs/Global_5/'
 
 
 
@@ -148,10 +151,7 @@ elif timeperiod == 'MAM': monthlist= [3,4,5]
 elif timeperiod == 'SON': monthlist= [9,10,11]
 
 
-latcut= 89
 
-unit='PerM'
-# unit='LatCycl'
 
 if typ == 'Eddies':
     if energytyp== 'E': varlist= ['vEmc', 'vEse', 'vEte']
@@ -216,7 +216,7 @@ if pannellist == ['Conv']: varlist= varlist[:1]
 
 
 
-intermediate_file_name= Mediadir_0 +'data/Energy_Transport/'+ model +'/intermediate_data/'+timeperiod+'-mean_'
+intermediate_file_name= Mediadir +'data/Energy_Transport/'+ model +'/intermediate_data/'+timeperiod+'-mean_'
 for var in implist: intermediate_file_name += var+'_'
 intermediate_file_name += str(syear)+'-'+str(eyear)
 for Member in Memberlist: intermediate_file_name += '_M'+str(Member)
@@ -229,7 +229,7 @@ if os.path.exists(intermediate_file_name):
 else:
     print('Import ...')
     for Member in Memberlist:
-        file_dir= Mediadir
+        file_dir= datadir
         if model== 'EC_Earth': 
             print('Member', Member) 
             file_dir += 'Member'+str(Member) +'/'            
@@ -241,7 +241,6 @@ else:
             for year in range(syear, eyear+1):
                 if year%10 == 0: print(year)
                 for month in monthlist:
-    #                print(month)
                     if year == syear and month== monthlist[0]:
                         print(file_dir+ var+'.'+str(year)+'.'+str(month).zfill(2)+ '.nc')
                         if monthlymean:
@@ -251,11 +250,9 @@ else:
                             ds0= ds0.mean(dim = 'time') #calculate the monthly mean
                             ds0= ds0.assign_coords(time=('time', pd.date_range(str(year)+'-'+str(month), periods= 1)))
 
-
                         if Member == Memberlist[0]: dslat= ds0.lat
                         else: ds0['lat']= dslat
-                        
-                        
+                                               
                     else:
                         if monthlymean:
                             ds1= xr.open_dataset(file_dir + var+'.'+str(year)+'.'+str(month).zfill(2)+ '.WN20.nc').assign_coords(time=('time', pd.date_range(str(year)+'-'+str(month), periods= 1)))
@@ -263,17 +260,14 @@ else:
                             ds1= xr.open_dataset(file_dir + var+'.'+str(year)+'.'+str(month).zfill(2)+ '.WN20.nc')
                             ds1= ds1.mean(dim = 'time')
                             ds1= ds1.assign_coords(time=('time', pd.date_range(str(year)+'-'+str(month), periods= 1)))
-
-                        
+                       
                         ds1['lat']= dslat
-    
-                        
+                            
                         ds0= xr.concat([ds0, ds1], dim= 'time')
     
                         
                     """the last loop step to merge the different variables in one ds"""
                     if year == eyear and month == monthlist[-1]:
-        #                print(ds)
                         if var== implist[0]:
                             ds2= ds0
                         else:
@@ -306,11 +300,15 @@ if unit =='PerM': fac= 1
 elif unit == 'LatCycl': fac= LatCirc
 
 if timeperiod== 'year': ds= ds.resample(time='1Y').mean()
-print('only for annual timeperiod')
-# .groupby('time.season')
+else:
+    ds= ds.resample(time='QS-DEC').mean().dropna(dim='time')
+    if timeperiod== 'DJF': 
+        ds= ds.where(ds["time.year"]>= syear).dropna(dim='time')
+        ds= ds.where(ds["time.year"]< eyear).dropna(dim='time')
 
 
-####here the sinescale function was before
+
+
 
 
 """Calculate transport of each category"""
@@ -361,18 +359,6 @@ if typ == 'Wavelength_smooth_3':
                           +(1- WaveSplit3%1) * ds[var].sel(WaveNumb= 1+ WaveSplit3//1).fillna(0) )
 
 
-
-    # ds['Meri']= ds[var].sel(WaveNumb= 0)
-    # ds['Plan']= ds[var].where(np.logical_and(ds.WaveNumb >= 1, ds.WaveNumb < WaveSplit1//1)).sum(dim='WaveNumb')+  WaveSplit1%1 * ds[var].where(ds.WaveNumb >= 1).sel(WaveNumb= WaveSplit1//1).fillna(0)
-    # ds['Syno_l']=  ( ds[var].where(np.logical_and(ds.WaveNumb > (WaveSplit1)//1, ds.WaveNumb < WaveSplit2//1)).sum(dim='WaveNumb') 
-    #                  + (1- WaveSplit1%1) * ds[var].where(ds.WaveNumb >= 1).sel(WaveNumb= WaveSplit1//1).fillna(0) 
-    #                  + WaveSplit2%1 * ds[var].where(ds.WaveNumb >= 1).sel(WaveNumb= WaveSplit2//1).fillna(0) )
-    # ds['Syno_s']=  ( ds[var].where(np.logical_and(ds.WaveNumb > (WaveSplit2)//1, ds.WaveNumb < WaveSplit3//1)).sum(dim='WaveNumb') 
-    #                  + (1- WaveSplit2%1) * ds[var].where(ds.WaveNumb >= 1).sel(WaveNumb= WaveSplit2//1).fillna(0) 
-    #                  + WaveSplit3%1 * ds[var].where(ds.WaveNumb >= 1).sel(WaveNumb= WaveSplit3//1).fillna(0) )
-    # ds['Meso']= ( ds[var].where(ds.WaveNumb > WaveSplit3//1).sum(dim='WaveNumb') 
-    #                  +(1- WaveSplit3%1) * ds[var].where(ds.WaveNumb >= 1).sel(WaveNumb= WaveSplit3//1).fillna(0) )
-
 if typ == 'Wavelength_strict':
     WaveSplit1= LatCirc/Split1
     
@@ -395,62 +381,8 @@ if rolling:
 
 
 
-def stack_ds(ds, dim= ("time", "Member")):
-    return np.array(ds.stack(x= dim) )
 
 
-def split_stack_ds(ds, split_2, split1, dim= ("time", "Member")):
-    return (np.array(ds.where(ds["time.year"]>= split_2, drop= True).stack(x= ("time", "Member")) ),
-            np.array(ds.where(ds["time.year"]<= split_1, drop= True).stack(x= ("time", "Member")) ) )
-
-
-
-def mean_diff(ds1, ds2):
-    return np.mean(ds1, axis= -1) - np.mean(ds2, axis= -1)
-
-def conv_diff(ds1, ds2, dslat= ds.lat):
-    from scipy import ndimage
-
-    diff= np.mean(ds1, axis= -1) - np.mean(ds2, axis= -1)
-    diff *= np.cos(np.deg2rad(dslat.values)) #.mean(dim='Member')    
-    # conv_diff= -1* diff.differentiate('lat')/110E3 * 1/np.cos(np.deg2rad(dslat.values))
-    conv_diff= np.gradient(diff, axis= 0)/110E3 * 1/np.cos(np.deg2rad(dslat.values))
-    
-    # conv_diff= ndimage.uniform_filter1d(conv_diff, 5) # a runnig mean filter
-
-    return conv_diff
-
-
-def frac_diff(ds1, ds2):
-    """difference/ mean"""
-    m1= np.mean(ds1, axis= -1)
-    m2= np.mean(ds2, axis= -1)
-    return (m1 - m2) /(0.5* (m1 + m2))
-
-# def moving_average(x, w):
-#     return np.convolve(x, np.ones(w), 'valid') / w
-
-
-
-def sign_change(ds1, dslat= ds.lat):
-    #ds1 is a stacked data variable
-    #dslat is just ds.lat
-    from scipy.signal import argrelextrema
-    from scipy import ndimage
-
-
-    ds1_s= np.sign(ds1)
-    sign_change= (np.roll(ds1_s, 1, axis= 1)- ds1_s != 0).astype(int)
-    sign_change[0]= 0
-    # return sign_change
-
-    sign_change_mean= sign_change.mean(axis= 1)
-    locmax= argrelextrema(sign_change_mean, np.greater)
-    sign_change_mean= ndimage.uniform_filter1d(sign_change_mean, 7)
-    sign_change_mean[sign_change_mean<1E-7]=0
-    return dslat.values[locmax], sign_change_mean
-
-p_level= 0.05
 
 
 
@@ -468,6 +400,7 @@ axs=fig.subplots(len(pannellist), 1, sharex= 'col')
 
 if len(pannellist)== 1: axs= [axs]
 
+
 """calculation relevant for all pannels"""
 if typ == 'Eddies':
     dstot= sum(ds[var] for var in varlist)
@@ -478,9 +411,8 @@ if 'Wavelength' in typ or typ in ['WaveNR']:
 
 
 for ip, ptype in enumerate(pannellist):
-
-
-#pannellist= ['Mean'] #'Var', 'Change-Mean', 'Change-Var', 'Conv', 'Change-Conv'
+    trans_var= False # plot the transient component - not included in many panels - is specified in the loop for the transient transport, needed here for an if statement of the legend
+    if ptype == 'Var': trans_var= True
 
     if ptype == 'Mean':
         mean= dstot.mean(dim='time').mean(dim='Member')#.rolling(lat= 5, center= True).mean()
@@ -540,9 +472,7 @@ for ip, ptype in enumerate(pannellist):
                     var_std= (ds[cat+'_'+varlist[0]]-ds[cat+'_'+varlist[1]]).std(dim='time').std(dim='Member')        
                     axs[ip].fill_between(ds.lat, fac*(variability - var_std),  fac*(variability + var_std), color= color, alpha= 0.2   )
 
-
                 
-        # axs[ip].set_ylabel('Annual variability \n transport [W m$^{-1}$]')
         axs[ip].set_ylabel('Transport variability \n [W m$^{-1}$]')
 
 
@@ -577,13 +507,11 @@ for ip, ptype in enumerate(pannellist):
                     # axs[ip].plot(ds.lat, fac*diffmean, ls= '--', label= cat +' stat', color= color)
 
 
-        axs[ip].set_ylabel('Transport change'#' \n '+str(split_2)+'-'+str(eyear)+' - '+str(syear)+'-'+str(split_1) 
-                           +'\n [W m$^{-1}$]')
+        axs[ip].set_ylabel('Transport change'+'\n [W m$^{-1}$]')
 
 
 
     if ptype == 'Change-Var-ftest': #the variance from the rolling mean #in test
-        # p_level= .1
         anomalie= dstot- dstot.rolling(time= 30, center= True).mean().dropna(dim= 'time')
         ds1, ds2= split_stack_ds(anomalie, split_2, split_1, dim= ("time", "Member"))
 
@@ -787,8 +715,7 @@ for ip, ptype in enumerate(pannellist):
                     axs[ip].plot(ds.lat, fac*np.ma.masked_where(cross_filter != 0, diff), ls= '--', color= color, lw= .5)
                     # axs[ip].plot(ds.lat, fac*diffmean, ls= '--', label= cat +' stat', color= color)
 
-        axs[ip].set_ylabel('Fraction change') #' \n'+str(split_2)+'-'+str(eyear)+' - '+str(syear)+'-'+str(split_1))
-
+        axs[ip].set_ylabel('Fraction change')
 
 
     if ptype== 'Change-Frac-Var-ftest': #(change transport variance) / (mean variance)
@@ -837,9 +764,7 @@ for ip, ptype in enumerate(pannellist):
 
 
 
-        axs[ip].set_ylabel('Fraction in variability change\n') #' \n '+str(split_2)+'-'+str(eyear)+' - '+str(syear)+'-'+str(split_1)
-
-
+        axs[ip].set_ylabel('Fraction in variability change\n')
 
 
 

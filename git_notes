@@ -122,3 +122,9 @@ git clone git@github.com:pst019/Energy_Transport_Code.git Energy_Transport_Code
 !git pull origin main # to get the latest version from github
 
 
+
+###in case of a conflict:
+sudo apt-get install meld
+git config --global diff.tool meld
+
+git difftool
