@@ -106,7 +106,7 @@ energytyp= 'Q'
 # pannellist, fix_y_axis, plot_large= ['Mean'], [2E8], True
 # pannellist, timeperiod, fix_y_axis, plot_large = ['Mean'], 'DJF', [[-1.8E8, 2.5E8]], True
 # pannellist, timeperiod, fix_y_axis, plot_large = ['Mean'], 'JJA', [[-2.5E8, 1.8E8]], True
-# pannellist, fix_y_axis= ['Mean' , 'Var'], [[-2E8, 2E8], [0, 1.15E7]]  #for EC-Earth
+pannellist, fix_y_axis= ['Mean' , 'Var'], [[-2E8, 2E8], [0, 1.15E7]]  #for EC-Earth
 
 # pannellist, fix_y_axis= ['Change-Mean-ttest', 'Change-Fraction-ttest', 'Change-Conv-ttest'], [[-2E7, 2E7], [-.25, .35], [-15, 16]]
 # pannellist, fix_y_axis= ['Change-Mean-ttest'], [[-2E7, 2E7]]
@@ -115,7 +115,7 @@ energytyp= 'Q'
 # pannellist, timeperiod, fix_y_axis= ['Change-Mean-ttest', 'Change-Fraction-ttest'], 'JJA', [[-2.2E7, 4E7], [-.4, .4]]
 # pannellist, fix_y_axis=  ['Change-Var-ftest', 'Change-Frac-Var-ftest'], [[-2.5E6, 3E6], [-.35, .5]]
 
-pannellist, fix_y_axis= ['Var', 'Var-Fraction'], [[0, 1.2E7], [0, .4]]
+# pannellist, fix_y_axis= ['Var', 'Var-Fraction'], [[0, 1.2E7], [0, .4]]
 # pannellist, fix_y_axis= ['Var'], [[0, 1.2E7]]
 # pannellist, scale, fix_y_axis= ['Conv'], 'sine', [[-80, 120]]
 

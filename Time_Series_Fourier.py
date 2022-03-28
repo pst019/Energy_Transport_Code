@@ -19,7 +19,6 @@ else:
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
-import cartopy.crs as ccrs
 from scipy import fftpack
 
 import pandas as pd
